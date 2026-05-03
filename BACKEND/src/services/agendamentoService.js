@@ -1,0 +1,1 @@
+// Regra de negócio dos agendamentos
