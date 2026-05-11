@@ -1,0 +1,1 @@
+// Tudo relacionado a agendamentos (CRUD)

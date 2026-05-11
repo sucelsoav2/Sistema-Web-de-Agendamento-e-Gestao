@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel Administrativo - AgendaFlow</title>
+
+    <link rel="stylesheet" href="../styles/global.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+</head>
+<body>
+
+<script src="../services/authService.js"></script>
+<script src="../services/checkAuth.js"></script>
+
+<div class="dashboard-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div>
+            <h2>AgendaFlow</h2>
+
+            <nav>
+                <ul>
+                    <li class="active" data-view="dashboard">Painel administrativo</li>
+                    <li data-view="spaces">Gestão de espaços</li>
+                    <li data-view="schedule">Bloqueio de horários</li>
+                    <li data-view="agenda">Personalização da agenda</li>
+                    <li data-view="reminders">Lembretes</li>
+                </ul>
+            </nav>
+        </div>
+
+        <button id="logoutBtn">Sair</button>
+    </aside>
+
+    <!-- CONTEÚDO -->
+    <main class="main-content">
+
+        <!-- HEADER -->
+        <header class="topbar">
+            <div>
+                <h1>Painel Administrativo</h1>
+                <p class="subtext">Visão geral e gestão completa do sistema</p>
+            </div>
+
+            <div class="topbar-actions">
+                <button id="mobileNavToggle" class="mobile-nav-toggle">Menu</button>
+                <div class="user-info">
+                    <span id="userEmail">Administrador</span>
+                </div>
+            </div>
+        </header>
+
+        <section id="viewDashboard" class="view active">
+            <div class="cards">
+                <div class="card">
+                    <h3>Agendamentos</h3>
+                    <p>24 hoje</p>
+                    <span class="card-meta">Próximo em 30 min</span>
+                </div>
+                <div class="card">
+                    <h3>Clientes</h3>
+                    <p>120 cadastrados</p>
+                    <span class="card-meta">8 novos esta semana</span>
+                </div>
+                <div class="card">
+                    <h3>Espaços</h3>
+                    <p>6 disponíveis</p>
+                    <span class="card-meta">2 reservas em espera</span>
+                </div>
+                <div class="card">
+                    <h3>Lembretes</h3>
+                    <p>3 pendentes</p>
+                    <span class="card-meta">Enviar hoje</span>
+                </div>
+            </div>
+
+            <div class="section-grid">
+                <div class="content-box">
+                    <h2>Resumo rápido</h2>
+                    <p>Use o painel para controlar agendamentos, gerenciar espaços, configurar bloqueios e acompanhar lembretes em um único lugar.</p>
+                </div>
+                <div class="content-box highlight">
+                    <h2>Próximas ações</h2>
+                    <ul>
+                        <li>Confirmar bloqueios de horários</li>
+                        <li>Revisar notificações pendentes</li>
+                        <li>Atualizar disponibilidade de espaços</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="viewSpaces" class="view">
+            <div class="view-header">
+                <div>
+                    <h2>Gestão de espaços</h2>
+                    <p>Adicione, edite e visualize salas e locais disponíveis.</p>
+                </div>
+                <button class="primary">Novo espaço</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Espaço</th>
+                            <th>Capacidade</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Sala Azul</td>
+                            <td>12 pessoas</td>
+                            <td><span class="status status-active">Ativo</span></td>
+                            <td><button class="secondary">Editar</button></td>
+                        </tr>
+                        <tr>
+                            <td>Auditório</td>
+                            <td>40 pessoas</td>
+                            <td><span class="status status-disabled">Reservado</span></td>
+                            <td><button class="secondary">Editar</button></td>
+                        </tr>
+                        <tr>
+                            <td>Salão Verde</td>
+                            <td>20 pessoas</td>
+                            <td><span class="status status-active">Ativo</span></td>
+                            <td><button class="secondary">Editar</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="viewSchedule" class="view">
+            <div class="view-header">
+                <div>
+                    <h2>Bloqueio de horários</h2>
+                    <p>Defina períodos indisponíveis e gerencie horários de forma visual.</p>
+                </div>
+                <button class="primary">Bloquear novo horário</button>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="calendar-card">
+                    <h3>Segunda</h3>
+                    <p>09:00 - 11:00</p>
+                    <span class="tag">Bloqueado</span>
+                </div>
+                <div class="calendar-card">
+                    <h3>Terça</h3>
+                    <p>14:00 - 16:00</p>
+                    <span class="tag">Bloqueado</span>
+                </div>
+                <div class="calendar-card">
+                    <h3>Quarta</h3>
+                    <p>08:00 - 10:00</p>
+                    <span class="tag">Bloqueado</span>
+                </div>
+                <div class="calendar-card">
+                    <h3>Quinta</h3>
+                    <p>17:00 - 18:30</p>
+                    <span class="tag">Bloqueado</span>
+                </div>
+                <div class="calendar-card">
+                    <h3>Sexta</h3>
+                    <p>12:00 - 13:00</p>
+                    <span class="tag">Bloqueado</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="viewAgenda" class="view">
+            <div class="view-header">
+                <div>
+                    <h2>Personalização da agenda</h2>
+                    <p>Configure aparência, horários e comportamento de notificações.</p>
+                </div>
+                <button class="primary" id="saveConfigBtn">Salvar configurações</button>
+            </div>
+
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <h3>Tema</h3>
+                    <label><input type="radio" name="theme" id="themeLight" value="light"> Claro</label>
+                    <label><input type="radio" name="theme" id="themeDark" value="dark"> Escuro</label>
+                </div>
+                <div class="settings-card">
+                    <h3>Início da semana</h3>
+                    <select id="weekStart">
+                        <option value="monday">Segunda-feira</option>
+                        <option value="sunday">Domingo</option>
+                    </select>
+                </div>
+                <div class="settings-card">
+                    <h3>Notificações</h3>
+                    <label class="switch"><input type="checkbox" id="notificationToggle" checked><span class="slider"></span></label>
+                </div>
+                <div class="settings-card">
+                    <h3>Agenda padrão</h3>
+                    <p>Exibir slot de 30 minutos</p>
+                    <label><input type="checkbox" id="showEmptySlots" checked> Mostrar horários vazios</label>
+                </div>
+            </div>
+        </section>
+
+        <section id="viewReminders" class="view">
+            <div class="view-header">
+                <div>
+                    <h2>Lembretes e notificações</h2>
+                    <p>Gerencie alertas e mostre notificações importantes para os usuários.</p>
+                </div>
+                <button class="primary">Criar lembrete</button>
+            </div>
+
+            <div class="reminder-list">
+                <div class="reminder-card">
+                    <div>
+                        <h3>Reunião com cliente</h3>
+                        <p>Enviado 30 min antes</p>
+                    </div>
+                    <span class="tag tag-info">Ativo</span>
+                </div>
+                <div class="reminder-card">
+                    <div>
+                        <h3>Verificar agenda do dia</h3>
+                        <p>Notificação diária às 08:00</p>
+                    </div>
+                    <span class="tag tag-warning">Pendente</span>
+                </div>
+                <div class="reminder-card">
+                    <div>
+                        <h3>Confirmação de espaço</h3>
+                        <p>Enviar 1 hora antes</p>
+                    </div>
+                    <span class="tag tag-success">Concluído</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+</div>
+
+<script src="./dashboard.js"></script>
+</body>
+</html>
