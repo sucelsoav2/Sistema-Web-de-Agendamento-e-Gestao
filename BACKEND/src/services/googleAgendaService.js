@@ -1,1 +1,0 @@
-// Integração com Google Agenda/autenticar API Google.
