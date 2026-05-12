@@ -97,7 +97,7 @@
                     <h2>Gestão de espaços</h2>
                     <p>Adicione, edite e visualize salas e locais disponíveis.</p>
                 </div>
-                <button class="primary">Novo espaço</button>
+                <button id="newSpaceBtn" class="primary">Novo espaço</button>
             </div>
 
             <div class="table-container">
@@ -110,26 +110,7 @@
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>Sala Azul</td>
-                            <td>12 pessoas</td>
-                            <td><span class="status status-active">Ativo</span></td>
-                            <td><button class="secondary">Editar</button></td>
-                        </tr>
-                        <tr>
-                            <td>Auditório</td>
-                            <td>40 pessoas</td>
-                            <td><span class="status status-disabled">Reservado</span></td>
-                            <td><button class="secondary">Editar</button></td>
-                        </tr>
-                        <tr>
-                            <td>Salão Verde</td>
-                            <td>20 pessoas</td>
-                            <td><span class="status status-active">Ativo</span></td>
-                            <td><button class="secondary">Editar</button></td>
-                        </tr>
-                    </tbody>
+                    <tbody id="spacesTableBody"></tbody>
                 </table>
             </div>
         </section>
@@ -140,36 +121,10 @@
                     <h2>Bloqueio de horários</h2>
                     <p>Defina períodos indisponíveis e gerencie horários de forma visual.</p>
                 </div>
-                <button class="primary">Bloquear novo horário</button>
+                <button id="newBlockBtn" class="primary">Bloquear novo horário</button>
             </div>
 
-            <div class="calendar-grid">
-                <div class="calendar-card">
-                    <h3>Segunda</h3>
-                    <p>09:00 - 11:00</p>
-                    <span class="tag">Bloqueado</span>
-                </div>
-                <div class="calendar-card">
-                    <h3>Terça</h3>
-                    <p>14:00 - 16:00</p>
-                    <span class="tag">Bloqueado</span>
-                </div>
-                <div class="calendar-card">
-                    <h3>Quarta</h3>
-                    <p>08:00 - 10:00</p>
-                    <span class="tag">Bloqueado</span>
-                </div>
-                <div class="calendar-card">
-                    <h3>Quinta</h3>
-                    <p>17:00 - 18:30</p>
-                    <span class="tag">Bloqueado</span>
-                </div>
-                <div class="calendar-card">
-                    <h3>Sexta</h3>
-                    <p>12:00 - 13:00</p>
-                    <span class="tag">Bloqueado</span>
-                </div>
-            </div>
+            <div class="calendar-grid" id="scheduleBlocksList"></div>
         </section>
 
         <section id="viewAgenda" class="view">
@@ -182,10 +137,12 @@
             </div>
 
             <div class="settings-grid">
-                <div class="settings-card">
+                <div class="settings-card theme-card">
                     <h3>Tema</h3>
-                    <label><input type="radio" name="theme" id="themeLight" value="light"> Claro</label>
-                    <label><input type="radio" name="theme" id="themeDark" value="dark"> Escuro</label>
+                    <div class="theme-options">
+                        <label class="radio-item"><input type="radio" name="theme" id="themeLight" value="light"><span>Claro</span></label>
+                        <label class="radio-item"><input type="radio" name="theme" id="themeDark" value="dark"><span>Escuro</span></label>
+                    </div>
                 </div>
                 <div class="settings-card">
                     <h3>Início da semana</h3>
@@ -194,9 +151,12 @@
                         <option value="sunday">Domingo</option>
                     </select>
                 </div>
-                <div class="settings-card">
+                <div class="settings-card notifications-card" id="notificationsCard">
                     <h3>Notificações</h3>
-                    <label class="switch"><input type="checkbox" id="notificationToggle" checked><span class="slider"></span></label>
+                    <div class="notification-toggle-row">
+                        <label class="switch"><input type="checkbox" id="notificationToggle" checked><span class="slider"></span></label>
+                        <span class="notification-state" id="notificationStateLabel">Ativo</span>
+                    </div>
                 </div>
                 <div class="settings-card">
                     <h3>Agenda padrão</h3>
@@ -212,34 +172,101 @@
                     <h2>Lembretes e notificações</h2>
                     <p>Gerencie alertas e mostre notificações importantes para os usuários.</p>
                 </div>
-                <button class="primary">Criar lembrete</button>
+                <button id="newReminderBtn" class="primary">Criar lembrete</button>
             </div>
 
-            <div class="reminder-list">
-                <div class="reminder-card">
-                    <div>
-                        <h3>Reunião com cliente</h3>
-                        <p>Enviado 30 min antes</p>
-                    </div>
-                    <span class="tag tag-info">Ativo</span>
-                </div>
-                <div class="reminder-card">
-                    <div>
-                        <h3>Verificar agenda do dia</h3>
-                        <p>Notificação diária às 08:00</p>
-                    </div>
-                    <span class="tag tag-warning">Pendente</span>
-                </div>
-                <div class="reminder-card">
-                    <div>
-                        <h3>Confirmação de espaço</h3>
-                        <p>Enviar 1 hora antes</p>
-                    </div>
-                    <span class="tag tag-success">Concluído</span>
-                </div>
-            </div>
+            <div class="reminder-list" id="reminderList"></div>
         </section>
     </main>
+
+    <div class="modal-overlay hidden" id="modalOverlay"></div>
+
+    <div class="modal hidden" id="spaceModal" role="dialog" aria-modal="true" aria-labelledby="spaceModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="spaceModalTitle">Novo espaço</h2>
+                <button class="close-modal" type="button" id="closeSpaceModal" aria-label="Fechar">×</button>
+            </div>
+            <form id="spaceForm">
+                <label for="spaceName">Nome do espaço</label>
+                <input type="text" id="spaceName" required>
+
+                <label for="spaceCapacity">Capacidade</label>
+                <input type="number" id="spaceCapacity" min="1" required>
+
+                <label for="spaceStatus">Status</label>
+                <select id="spaceStatus">
+                    <option value="Ativo">Ativo</option>
+                    <option value="Reservado">Reservado</option>
+                </select>
+
+                <input type="hidden" id="spaceId">
+                <button type="submit" class="primary">Salvar espaço</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="blockModal" role="dialog" aria-modal="true" aria-labelledby="blockModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="blockModalTitle">Novo bloqueio</h2>
+                <button class="close-modal" type="button" id="closeBlockModal" aria-label="Fechar">×</button>
+            </div>
+            <form id="blockForm">
+                <label for="blockDay">Dia da semana</label>
+                <select id="blockDay">
+                    <option value="Segunda">Segunda</option>
+                    <option value="Terça">Terça</option>
+                    <option value="Quarta">Quarta</option>
+                    <option value="Quinta">Quinta</option>
+                    <option value="Sexta">Sexta</option>
+                    <option value="Sábado">Sábado</option>
+                    <option value="Domingo">Domingo</option>
+                </select>
+
+                <label for="blockStart">Início</label>
+                <input type="time" id="blockStart" required>
+
+                <label for="blockEnd">Fim</label>
+                <input type="time" id="blockEnd" required>
+
+                <label for="blockReason">Motivo</label>
+                <input type="text" id="blockReason" placeholder="Ex: manutenção" required>
+
+                <input type="hidden" id="blockId">
+                <button type="submit" class="primary">Salvar bloqueio</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="reminderModal" role="dialog" aria-modal="true" aria-labelledby="reminderModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="reminderModalTitle">Novo lembrete</h2>
+                <button class="close-modal" type="button" id="closeReminderModal" aria-label="Fechar">×</button>
+            </div>
+            <form id="reminderForm">
+                <label for="reminderTitle">Título</label>
+                <input type="text" id="reminderTitle" required>
+
+                <label for="reminderTime">Hora</label>
+                <input type="time" id="reminderTime" required>
+
+                <label for="reminderNotes">Descrição</label>
+                <input type="text" id="reminderNotes" placeholder="Ex: Enviar confirmação" required>
+
+                <label for="reminderStatus">Status</label>
+                <select id="reminderStatus">
+                    <option value="Ativo">Ativo</option>
+                    <option value="Pendente">Pendente</option>
+                    <option value="Concluído">Concluído</option>
+                </select>
+
+                <input type="hidden" id="reminderId">
+                <button type="submit" class="primary">Salvar lembrete</button>
+            </form>
+        </div>
+    </div>
 
 </div>
 
