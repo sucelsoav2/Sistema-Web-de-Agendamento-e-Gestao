@@ -1,4 +1,3 @@
-**AV2 Sucelso**
 
 Integrantes do grupo:
 Leonardo Magalhães
