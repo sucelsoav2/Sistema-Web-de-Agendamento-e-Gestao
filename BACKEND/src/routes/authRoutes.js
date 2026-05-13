@@ -4,7 +4,6 @@ const { expressjwt: jwt } = require("express-jwt");
 const authController = require("../controllers/authController");
 
 // configuração do express-jwt
-// middleware que protege as rotas
 const verificarToken = jwt({
   secret: process.env.JWT_SECRET || "sua_chave_secreta_aqui",
   algorithms: ["HS256"],
@@ -14,11 +13,11 @@ const verificarToken = jwt({
 // rotas públicas
 // criar novo usuário
 router.post("/registrar", authController.registrar);
+
 // autenticar usuário
 router.post("/login", authController.login);
 
 // rotas protegidas 
-// precisa de token válido no header: Authorization: Bearer SEU_TOKEN
 router.get("/perfil", verificarToken, authController.obterPerfil);
 
 // fazer logout
