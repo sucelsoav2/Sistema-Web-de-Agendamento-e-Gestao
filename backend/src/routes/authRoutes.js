@@ -20,14 +20,4 @@ router.post("/login", authController.login);
 // rotas protegidas 
 router.get("/perfil", verificarToken, authController.obterPerfil);
 
-// fazer logout
-router.post("/logout", verificarToken, authController.logout);
-
-// atualizar dados do usuário
-// precisa de token válido no header
-router.put("/atualizar-perfil", verificarToken, authController.atualizarPerfil);
-
 module.exports = router;
-
-router.post("/registrar", (req, res) => {});
-router.get("/perfil", (req, res) => {});

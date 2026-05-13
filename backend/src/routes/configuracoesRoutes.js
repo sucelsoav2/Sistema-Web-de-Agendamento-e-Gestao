@@ -7,5 +7,6 @@ const verificarToken = jwt({ secret: process.env.JWT_SECRET || "sua_chave_secret
 
 router.get('/', verificarToken, configuracoesController.obter);
 router.put('/', verificarToken, configuracoesController.atualizar);
+router.post('/', verificarToken, configuracoesController.atualizar);
 
 module.exports = router;

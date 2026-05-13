@@ -8,5 +8,6 @@ const verificarToken = jwt({ secret: process.env.JWT_SECRET || "sua_chave_secret
 router.get('/', verificarToken, lembretesController.listar);
 router.post('/', verificarToken, lembretesController.criar);
 router.put('/:id', verificarToken, lembretesController.atualizar);
+router.delete('/:id', verificarToken, lembretesController.deletar);
 
 module.exports = router;
