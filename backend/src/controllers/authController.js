@@ -1,212 +1,184 @@
-// autenticação do sistema. valida usuário/login
-
 const authService = require("../services/authService");
+const supabase = require("../config/database");
 
 class AuthController {
-  // criar novo usuário
   async registrar(req, res) {
     try {
       const { nome, email, senha, tipo } = req.body;
 
-      // validações básicas
       if (!nome || !email || !senha) {
-        return res.status(400).json({
-          sucesso: false,
-          mensagem: "Nome, email e senha são obrigatórios",
-        });
+        return res.status(400).json({ sucesso: false, mensagem: "Nome, email e senha são obrigatórios" });
       }
 
-      // valida formato do email
       if (!authService.validarEmail(email)) {
-        return res.status(400).json({
-          sucesso: false,
-          mensagem: "Email inválido",
-        });
+        return res.status(400).json({ sucesso: false, mensagem: "Email inválido" });
       }
 
-      // valida força da senha
       const validacaoSenha = authService.validarSenha(senha);
       if (!validacaoSenha.valido) {
-        return res.status(400).json({
-          sucesso: false,
-          mensagem: validacaoSenha.mensagem,
-        });
+        return res.status(400).json({ sucesso: false, mensagem: validacaoSenha.mensagem });
       }
 
-      // verifica se email já existe
-      const emailExiste = await authService.validarEmailExistente(email);
-      if (emailExiste) {
-        return res.status(409).json({
-          sucesso: false,
-          mensagem: "Email já cadastrado",
-        });
+      // Verifica se o email já existe no Supabase
+      const { data: usuarioExistente, error: errExistente } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (usuarioExistente) {
+        return res.status(409).json({ sucesso: false, mensagem: "Email já cadastrado" });
       }
 
-      // criptografa a senha
       const senhaCriptografada = await authService.criptografarSenha(senha);
 
-      // salvar usuário no banco de dados
-      // const novoUsuario = await Usuario.create({
-      //   nome,
-      //   email,
-      //   senha: senhaCriptografada,
-      //   tipo: tipo || 'cliente'
-      // });
+      // Inserir novo usuário no Supabase
+      const { data: novoUsuario, error: erroInsert } = await supabase
+        .from('usuarios')
+        .insert([{ 
+          nome, 
+          email, 
+          senha_hash: senhaCriptografada, 
+          tipo: tipo || 'profissional' 
+        }])
+        .select()
+        .single();
 
-      // gera token JWT
-      const token = authService.gerarToken(1, email); // ID será do banco depois
+      if (erroInsert) {
+        throw erroInsert;
+      }
+
+      // Cria a configuração padrão de agenda para este novo profissional
+      if (novoUsuario.tipo === 'profissional') {
+          await supabase.from('configuracoes_agenda').insert([{ usuario_id: novoUsuario.id }]);
+      }
+
+      const token = authService.gerarToken(novoUsuario.id, email);
 
       return res.status(201).json({
         sucesso: true,
         mensagem: "Usuário registrado com sucesso",
         token: token,
         usuario: {
-          nome,
-          email,
-          tipo: tipo || "cliente",
+          id: novoUsuario.id,
+          nome: novoUsuario.nome,
+          email: novoUsuario.email,
+          tipo: novoUsuario.tipo,
         },
       });
     } catch (erro) {
       console.error("Erro ao registrar:", erro);
-      return res.status(500).json({
-        sucesso: false,
-        mensagem: "Erro interno do servidor",
-      });
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
     }
   }
 
-  // autenticar usuário
   async login(req, res) {
     try {
       const { email, senha } = req.body;
 
-      // validações básicas
       if (!email || !senha) {
-        return res.status(400).json({
-          sucesso: false,
-          mensagem: "Email e senha são obrigatórios",
-        });
+        return res.status(400).json({ sucesso: false, mensagem: "Email e senha são obrigatórios" });
       }
 
-      // buscar usuário no banco de dados
-      // const usuario = await Usuario.findOne({ email });
-      // if (!usuario) {
-      //   return res.status(401).json({
-      //     sucesso: false,
-      //     mensagem: 'Usuário ou senha inválidos'
-      //   });
-      // }
+      // Buscar usuário no Supabase
+      const { data: usuario, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('email', email)
+        .single();
 
-      // comparar senha
-      // const senhaValida = await authService.compararSenha(senha, usuario.senha);
-      // if (!senhaValida) {
-      //   return res.status(401).json({
-      //     sucesso: false,
-      //     mensagem: 'Usuário ou senha inválidos'
-      //   });
-      // }
+      if (error || !usuario) {
+        return res.status(401).json({ sucesso: false, mensagem: 'Usuário ou senha inválidos' });
+      }
 
-      // gera token JWT
-      const token = authService.gerarToken(1, email); // ID será do banco depois
+      // Comparar senha
+      const senhaValida = await authService.compararSenha(senha, usuario.senha_hash);
+      if (!senhaValida) {
+        return res.status(401).json({ sucesso: false, mensagem: 'Usuário ou senha inválidos' });
+      }
+
+      const token = authService.gerarToken(usuario.id, email);
 
       return res.status(200).json({
         sucesso: true,
         mensagem: "Login realizado com sucesso",
         token: token,
         usuario: {
-          email,
-          tipo: "admin", // Vem do banco depois
+          id: usuario.id,
+          nome: usuario.nome,
+          email: usuario.email,
+          tipo: usuario.tipo,
         },
       });
     } catch (erro) {
       console.error("Erro ao fazer login:", erro);
-      return res.status(500).json({
-        sucesso: false,
-        mensagem: "Erro interno do servidor",
-      });
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
     }
   }
 
-  // obter dados do usuário autenticado
-  // token vem automaticamente decodificado em req.auth
   async obterPerfil(req, res) {
     try {
-      // os dados do usuário estão em req.auth
       const usuarioToken = req.auth;
+
+      const { data: usuario, error } = await supabase
+        .from('usuarios')
+        .select('id, nome, email, telefone, tipo')
+        .eq('id', usuarioToken.id)
+        .single();
+
+      if (error || !usuario) {
+          return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado" });
+      }
 
       return res.status(200).json({
         sucesso: true,
         mensagem: "Perfil obtido com sucesso",
-        usuario: {
-          id: usuarioToken.id,
-          email: usuarioToken.email,
-          // buscar mais dados do banco de dados
-        },
+        usuario,
       });
     } catch (erro) {
       console.error("Erro ao obter perfil:", erro);
-      return res.status(500).json({
-        sucesso: false,
-        mensagem: "Erro interno do servidor",
-      });
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
     }
   }
 
-  // fazer logout
   async logout(req, res) {
-    try {
-      const usuarioToken = req.auth;
-
-      return res.status(200).json({
-        sucesso: true,
-        mensagem: "Logout realizado com sucesso",
-      });
-    } catch (erro) {
-      console.error("Erro ao fazer logout:", erro);
-      return res.status(500).json({
-        sucesso: false,
-        mensagem: "Erro interno do servidor",
-      });
-    }
+    // Logout em JWT statless é apenas no client.
+    return res.status(200).json({
+      sucesso: true,
+      mensagem: "Logout realizado com sucesso",
+    });
   }
 
-  // atualizar dados do usuário
   async atualizarPerfil(req, res) {
     try {
       const { nome, telefone } = req.body;
       const usuarioToken = req.auth;
 
-      // validações básicas
       if (!nome && !telefone) {
-        return res.status(400).json({
-          sucesso: false,
-          mensagem: "Forneça ao menos um campo para atualizar",
-        });
+        return res.status(400).json({ sucesso: false, mensagem: "Forneça ao menos um campo para atualizar" });
       }
 
-      // atualizar usuário no banco de dados
-      // const usuarioAtualizado = await Usuario.findByIdAndUpdate(
-      //   usuarioToken.id,
-      //   { nome, telefone },
-      //   { new: true }
-      // );
+      const updateData = {};
+      if (nome) updateData.nome = nome;
+      if (telefone !== undefined) updateData.telefone = telefone;
+
+      const { data: usuarioAtualizado, error } = await supabase
+        .from('usuarios')
+        .update(updateData)
+        .eq('id', usuarioToken.id)
+        .select('id, nome, email, telefone, tipo')
+        .single();
+
+      if (error) throw error;
 
       return res.status(200).json({
         sucesso: true,
         mensagem: "Perfil atualizado com sucesso",
-        usuario: {
-          id: usuarioToken.id,
-          email: usuarioToken.email,
-          nome,
-          telefone,
-        },
+        usuario: usuarioAtualizado,
       });
     } catch (erro) {
       console.error("Erro ao atualizar perfil:", erro);
-      return res.status(500).json({
-        sucesso: false,
-        mensagem: "Erro interno do servidor",
-      });
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
     }
   }
 }
