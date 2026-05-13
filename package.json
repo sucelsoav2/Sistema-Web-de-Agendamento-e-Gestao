@@ -1,7 +1,7 @@
 {
   "name": "sistema-web-de-agendamento-e-gestao",
   "version": "1.0.0",
-  "description": "Sistema de agendamento para aula de fullstack ",
+  "description": "Sistema de agendamento para aula de fullstack",
   "homepage": "https://github.com/sucelsoav2/Sistema-Web-de-Agendamento-e-Gestao#readme",
   "bugs": {
     "url": "https://github.com/sucelsoav2/Sistema-Web-de-Agendamento-e-Gestao/issues"
@@ -13,9 +13,9 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "app.js",
+  "main": "backend/app.js",
   "scripts": {
-    "startdev": "nodemon app.js"
+    "startdev": "nodemon backend/app.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -24,9 +24,9 @@
     "express": "^5.2.1",
     "express-jwt": "^8.5.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.2",
-    "node": "^26.1.0",
-    "nodejs": "^0.0.0",
+    "mongoose": "^9.6.2"
+  },
+  "devDependencies": {
     "nodemon": "^3.1.14"
   }
 }
