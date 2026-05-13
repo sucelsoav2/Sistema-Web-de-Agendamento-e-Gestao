@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const logoutBtn = document.getElementById("logoutBtn");
   const userEmailElement = document.getElementById("userEmail");
   const navItems = document.querySelectorAll(".sidebar li[data-view]");
@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const notificationStateLabel = document.getElementById("notificationStateLabel");
   const notificationsCard = document.getElementById("notificationsCard");
   const showEmptySlots = document.getElementById("showEmptySlots");
-  
   const newSpaceBtn = document.getElementById("newSpaceBtn");
   const newBlockBtn = document.getElementById("newBlockBtn");
   const newReminderBtn = document.getElementById("newReminderBtn");
@@ -47,28 +46,62 @@ document.addEventListener("DOMContentLoaded", () => {
   const reminderStatus = document.getElementById("reminderStatus");
   const reminderIdInput = document.getElementById("reminderId");
 
+  const token = authService.getToken();
+  if (!authService.isAuthenticated()) {
+      window.location.href = "./login.html";
+      return;
+  }
+
+  const user = authService.getUserFromToken(token);
+  userEmailElement.textContent = user?.email || "Usuário";
+
   const logout = () => authService.logout();
 
-  const token = authService.getToken();
-  const user = authService.getUserFromToken(token);
-  userEmailElement.textContent = user?.email || "Administrador";
-
-  // Estado Local da UI
   let spaces = [];
   let blocks = [];
   let reminders = [];
+  let clientes = [];
+  let agendamentos = [];
+  let usuarios = [];
+  let settings = { theme: "light", weekStart: "monday", notifications: true, showEmptySlots: true };
+
+  const carregarDadosDoBanco = async () => {
+      try {
+          const [resEspacos, resBloqueios, resLembretes, resConfig, resClientes, resAgendamentos, resUsuarios] = await Promise.all([
+              api.get('/espacos').catch(() => ({ espacos: [] })),
+              api.get('/bloqueios').catch(() => ({ bloqueios: [] })),
+              api.get('/lembretes').catch(() => ({ lembretes: [] })),
+              api.get('/configuracoes').catch(() => ({ configuracoes: settings })),
+              api.get('/clientes').catch(() => ({ clientes: [] })),
+              api.get('/agendamentos').catch(() => ({ agendamentos: [] })),
+              api.get('/usuarios').catch(() => ({ usuarios: [] }))
+          ]);
+
+          spaces = resEspacos.espacos || [];
+          blocks = resBloqueios.bloqueios || [];
+          reminders = resLembretes.lembretes || [];
+          clientes = resClientes.clientes || [];
+          agendamentos = resAgendamentos.agendamentos || [];
+          usuarios = resUsuarios.usuarios || [];
+          if (resConfig.configuracoes && resConfig.configuracoes.id) {
+              settings = {
+                  id: resConfig.configuracoes.id,
+                  theme: resConfig.configuracoes.tema_escuro ? 'dark' : 'light',
+                  weekStart: resConfig.configuracoes.inicio_semana || 'monday',
+                  notifications: resConfig.configuracoes.notificacoes_ativas ?? true,
+                  showEmptySlots: resConfig.configuracoes.mostrar_horarios_vazios ?? true
+              };
+          }
+          loadSettings();
+          updateDashboard();
+      } catch (error) {
+          console.error("Erro ao carregar dados do Supabase", error);
+      }
+  };
 
   const openModal = (modalElement) => {
     modalOverlay.classList.remove("hidden");
     modalElement.classList.remove("hidden");
-  };
-
-  const closeModal = (modalElement) => {
-    modalOverlay.classList.add("hidden");
-    modalElement.classList.add("hidden");
-    modalElement.querySelector("form")?.reset();
-    modalElement.querySelector('input[type="hidden"]') &&
-      (modalElement.querySelector('input[type="hidden"]').value = "");
   };
 
   const applyTheme = (theme) => {
@@ -80,11 +113,13 @@ document.addEventListener("DOMContentLoaded", () => {
       blockEnd.setCustomValidity("");
       return true;
     }
+
     if (blockEnd.value <= blockStart.value) {
       blockEnd.setCustomValidity("O horário de fim deve ser maior que o horário de início.");
       blockEnd.reportValidity();
       return false;
     }
+
     blockEnd.setCustomValidity("");
     return true;
   };
@@ -109,78 +144,54 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => notificationsCard.classList.remove("active"), 900);
   });
 
-  const carregarDadosDoBanco = async () => {
-    try {
-        const [resEspacos, resBloqueios, resLembretes, resConfig] = await Promise.all([
-            api.request('/espacos'),
-            api.request('/bloqueios'),
-            api.request('/lembretes'),
-            api.request('/configuracoes')
-        ]);
-
-        if (resEspacos.sucesso) spaces = resEspacos.espacos;
-        if (resBloqueios.sucesso) blocks = resBloqueios.bloqueios;
-        if (resLembretes.sucesso) reminders = resLembretes.lembretes;
-        if (resConfig.sucesso) {
-            const cfg = resConfig.configuracoes;
-            applyTheme(cfg.theme || 'light');
-            themeLight.checked = cfg.theme !== 'dark';
-            themeDark.checked = cfg.theme === 'dark';
-            weekStart.value = cfg.visualizacao_padrao === 'semanal' ? 'monday' : 'sunday';
-            updateNotificationState();
-        }
-        updateDashboard();
-    } catch (error) {
-        console.error("Erro ao puxar dados do Supabase:", error);
-    }
+  const closeModal = (modalElement) => {
+    modalOverlay.classList.add("hidden");
+    modalElement.classList.add("hidden");
+    modalElement.querySelector("form")?.reset();
+    modalElement.querySelector('input[type="hidden"]') && (modalElement.querySelector('input[type="hidden"]').value = "");
   };
 
-  const renderDashboardMetrics = async () => {
+  const renderDashboardMetrics = () => {
     const cards = document.querySelectorAll(".cards .card");
-    try {
-      const response = await api.request('/dashboard/stats');
-      if (response.sucesso && cards.length >= 4) {
-        const stats = response.stats;
-        cards[0].querySelector("p").textContent = `${stats.agendamentosHoje} hoje`;
-        cards[0].querySelector(".card-meta").textContent = `Agendamentos do dia`;
-        cards[1].querySelector("p").textContent = `${stats.totalClientes} cadastrados`;
-        cards[1].querySelector(".card-meta").textContent = `Clientes na base`;
-        cards[2].querySelector("p").textContent = `${stats.espacosDisponiveis} disponíveis`;
-        cards[2].querySelector(".card-meta").textContent = `Espaços ativos`;
-        cards[3].querySelector("p").textContent = `${stats.lembretesPendentes} pendentes`;
-        cards[3].querySelector(".card-meta").textContent = stats.lembretesPendentes > 0 ? `Lembretes a enviar` : "Tudo em dia";
-      }
-    } catch (error) {
-      console.error("Erro ao carregar métricas:", error);
-      if (cards.length >= 4) {
-        cards[0].querySelector("p").textContent = `0 hoje`;
-        cards[0].querySelector(".card-meta").textContent = ``;
-        cards[1].querySelector("p").textContent = `0 cadastrados`;
-        cards[1].querySelector(".card-meta").textContent = ``;
-        cards[2].querySelector("p").textContent = `0 disponíveis`;
-        cards[2].querySelector(".card-meta").textContent = ``;
-        cards[3].querySelector("p").textContent = `0 totais`;
-        cards[3].querySelector(".card-meta").textContent = ``;
-      }
+    const activeSpaces = spaces.filter((item) => item.status === "Ativo").length;
+    const pendingReminders = reminders.filter((item) => item.status === "Pendente").length;
+
+    if (cards.length >= 4) {
+      // 0 = Agendamentos
+      cards[0].querySelector("p").textContent = `${agendamentos.length} totais`;
+      cards[0].querySelector(".card-meta").textContent = agendamentos.length ? `Visualizar painel completo` : "Nenhum agendamento";
+      
+      // 1 = Clientes
+      cards[1].querySelector("p").textContent = `${clientes.length} cadastrados`;
+      cards[1].querySelector(".card-meta").textContent = "Base atualizada";
+      
+      // 2 = Espaços
+      cards[2].querySelector("p").textContent = `${activeSpaces} disponíveis`;
+      cards[2].querySelector(".card-meta").textContent = `${spaces.length - activeSpaces} inativos / reservados`;
+      
+      // 3 = Lembretes
+      cards[3].querySelector("p").textContent = `${pendingReminders} pendentes`;
+      cards[3].querySelector(".card-meta").textContent = `${reminders.length} totais`;
     }
   };
 
   const renderSpaces = () => {
-    spacesTableBody.innerHTML = spaces.map(space => `
-      <tr>
-        <td>${space.name}</td>
-        <td>${space.capacity} pessoas</td>
-        <td><span class="status ${space.status === "Ativo" ? "status-active" : "status-disabled"}">${space.status}</span></td>
-        <td>
-          <button class="secondary edit-space" data-id="${space.id}">Editar</button>
-          <button class="secondary delete-space" data-id="${space.id}">Excluir</button>
-        </td>
-      </tr>
+    spacesTableBody.innerHTML = spaces.map((space) => `
+        <tr>
+            <td>${space.name}</td>
+            <td>${space.capacity} pessoas</td>
+            <td><span class="status ${space.status === "Ativo" ? "status-active" : "status-disabled"}">${space.status}</span></td>
+            <td>
+                <button class="secondary edit-space" data-id="${space.id}">Editar</button>
+                <button class="secondary delete-space" data-id="${space.id}">Excluir</button>
+            </td>
+        </tr>
     `).join("");
 
-    spacesTableBody.querySelectorAll(".edit-space").forEach(button => {
+    spacesTableBody.querySelectorAll(".edit-space").forEach((button) => {
       button.addEventListener("click", () => {
-        const item = spaces.find(s => s.id === button.dataset.id);
+        const id = button.dataset.id;
+        const item = spaces.find((space) => String(space.id) === String(id));
         if (!item) return;
         spaceName.value = item.name;
         spaceCapacity.value = item.capacity;
@@ -191,41 +202,39 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    spacesTableBody.querySelectorAll(".delete-space").forEach(button => {
+    spacesTableBody.querySelectorAll(".delete-space").forEach((button) => {
       button.addEventListener("click", async () => {
         const id = button.dataset.id;
-        try {
-            await api.request(`/espacos/${id}`, 'DELETE');
-            spaces = spaces.filter(space => space.id !== id);
-            renderSpaces();
-            renderDashboardMetrics();
-        } catch(e) { alert("Erro ao excluir espaço."); }
+        if(confirm("Deseja realmente excluir o espaço?")) {
+            await api.delete(`/espacos/${id}`);
+            await carregarDadosDoBanco();
+        }
       });
     });
   };
 
   const renderScheduleBlocks = () => {
-    scheduleBlocksList.innerHTML = blocks.map(block => `
-      <div class="calendar-card">
-        <div>
-          <h3>${block.day}</h3>
-          <p>${block.start} - ${block.end}</p>
-          <span class="tag">${block.reason}</span>
+    scheduleBlocksList.innerHTML = blocks.map((block) => `
+        <div class="calendar-card">
+            <div>
+                <h3>${block.day || 'Sem dia'}</h3>
+                <p>${block.start || '00:00'} - ${block.end || '00:00'}</p>
+                <span class="tag">${block.reason || 'Manutenção'}</span>
+            </div>
+            <div class="card-actions">
+                <button class="secondary edit-block" data-id="${block.id}">Editar</button>
+                <button class="secondary delete-block" data-id="${block.id}">Excluir</button>
+            </div>
         </div>
-        <div class="card-actions">
-          <button class="secondary edit-block" data-id="${block.id}">Editar</button>
-          <button class="secondary delete-block" data-id="${block.id}">Excluir</button>
-        </div>
-      </div>
     `).join("");
 
-    scheduleBlocksList.querySelectorAll(".edit-block").forEach(button => {
+    scheduleBlocksList.querySelectorAll(".edit-block").forEach((button) => {
       button.addEventListener("click", () => {
-        const block = blocks.find(b => b.id === button.dataset.id);
+        const block = blocks.find((item) => String(item.id) === String(button.dataset.id));
         if (!block) return;
         blockDay.value = block.day;
-        blockStart.value = block.start.substring(0,5);
-        blockEnd.value = block.end.substring(0,5);
+        blockStart.value = block.start;
+        blockEnd.value = block.end;
         blockReason.value = block.reason;
         blockIdInput.value = block.id;
         blockModal.querySelector("#blockModalTitle").textContent = "Editar bloqueio";
@@ -233,60 +242,128 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    scheduleBlocksList.querySelectorAll(".delete-block").forEach(button => {
+    scheduleBlocksList.querySelectorAll(".delete-block").forEach((button) => {
       button.addEventListener("click", async () => {
         const id = button.dataset.id;
-        try {
-            await api.request(`/bloqueios/${id}`, 'DELETE');
-            blocks = blocks.filter(b => b.id !== id);
-            renderScheduleBlocks();
-        } catch(e) { alert("Erro ao excluir bloqueio."); }
+        if(confirm("Deseja excluir o bloqueio?")) {
+            await api.delete(`/bloqueios/${id}`);
+            await carregarDadosDoBanco();
+        }
       });
     });
   };
 
   const renderReminderList = () => {
-    reminderList.innerHTML = reminders.map(reminder => `
-      <div class="reminder-card">
-        <div>
-          <h3>${reminder.title}</h3>
-          <p>${reminder.notes} • ${reminder.time}</p>
+    reminderList.innerHTML = reminders.map((reminder) => `
+        <div class="reminder-card">
+            <div>
+                <h3>${reminder.title}</h3>
+                <p>${reminder.notes || ''} • ${reminder.time}</p>
+            </div>
+            <div class="reminder-actions">
+                <span class="tag ${reminder.status === "Ativo" ? "tag-info" : reminder.status === "Pendente" ? "tag-warning" : "tag-success"}">${reminder.status}</span>
+                <button class="secondary edit-reminder" data-id="${reminder.id}">Editar</button>
+                <button class="secondary delete-reminder" data-id="${reminder.id}">Excluir</button>
+            </div>
         </div>
-        <div class="reminder-actions">
-          <span class="tag ${reminder.status === "Ativo" ? "tag-info" : reminder.status === "Pendente" ? "tag-warning" : "tag-success"}">${reminder.status}</span>
-          <button class="secondary edit-reminder" data-id="${reminder.id}">Editar</button>
-        </div>
-      </div>
     `).join("");
 
-    reminderList.querySelectorAll(".edit-reminder").forEach(button => {
+    reminderList.querySelectorAll(".edit-reminder").forEach((button) => {
       button.addEventListener("click", () => {
-        const reminder = reminders.find(r => r.id === button.dataset.id);
+        const reminder = reminders.find((item) => String(item.id) === String(button.dataset.id));
         if (!reminder) return;
         reminderTitle.value = reminder.title;
         reminderTime.value = reminder.time;
-        reminderNotes.value = reminder.notes;
-        reminderStatus.value = reminder.status;
+        reminderNotes.value = reminder.notes || '';
+        reminderStatus.value = reminder.status || 'Pendente';
         reminderIdInput.value = reminder.id;
         reminderModal.querySelector("#reminderModalTitle").textContent = "Editar lembrete";
         openModal(reminderModal);
       });
     });
+
+    reminderList.querySelectorAll(".delete-reminder").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const id = button.dataset.id;
+        if(confirm("Excluir lembrete?")) {
+            await api.delete(`/lembretes/${id}`);
+            await carregarDadosDoBanco();
+        }
+      });
+    });
+  };
+
+  const usuariosTableBody = document.getElementById("usuariosTableBody");
+  const userFilter = document.getElementById("userFilter");
+
+  const renderUsuarios = () => {
+    if (!usuariosTableBody) return;
+    const filter = userFilter ? userFilter.value : 'todos';
+    
+    const filtrados = usuarios.filter(u => filter === 'todos' || String(u.role_id) === filter);
+
+    usuariosTableBody.innerHTML = filtrados.map((u) => `
+        <tr>
+            <td>${u.nome}</td>
+            <td>${u.email}</td>
+            <td><span class="tag ${u.role_id === 3 ? 'tag-warning' : u.role_id === 2 ? 'tag-info' : 'tag-success'}">${u.role_name}</span></td>
+            <td><span class="status ${u.ativo ? "status-active" : "status-disabled"}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+            <td>
+                <select class="change-role" data-id="${u.id}" style="padding:4px; font-size:12px;">
+                    <option value="1" ${u.role_id === 1 ? 'selected' : ''}>Cliente</option>
+                    <option value="2" ${u.role_id === 2 ? 'selected' : ''}>Profissional</option>
+                    <option value="3" ${u.role_id === 3 ? 'selected' : ''}>Admin</option>
+                </select>
+            </td>
+        </tr>
+    `).join("");
+
+    usuariosTableBody.querySelectorAll(".change-role").forEach((select) => {
+        select.addEventListener("change", async (e) => {
+            const id = e.target.dataset.id;
+            const newRole = e.target.value;
+            try {
+                const res = await api.put(`/usuarios/${id}/cargo`, { role_id: parseInt(newRole) });
+                if(res.sucesso === false) {
+                  alert(res.erro || "Erro ao alterar cargo");
+                }
+                await carregarDadosDoBanco();
+            } catch(error) {
+                alert("Acesso negado ou erro interno.");
+                await carregarDadosDoBanco();
+            }
+        });
+    });
+  };
+
+  if (userFilter) {
+    userFilter.addEventListener("change", renderUsuarios);
+  }
+
+  const loadSettings = () => {
+    applyTheme(settings.theme);
+    themeLight.checked = settings.theme === "light";
+    themeDark.checked = settings.theme === "dark";
+    weekStart.value = settings.weekStart;
+    notificationToggle.checked = settings.notifications;
+    showEmptySlots.checked = settings.showEmptySlots;
+    updateNotificationState();
   };
 
   const saveConfig = async () => {
-    const selectedTheme = themeDark.checked ? "dark" : "light";
     try {
-        await api.request('/configuracoes', 'PUT', {
-            theme: selectedTheme,
-            weekStart: weekStart.value,
-            notifications: notificationToggle.checked,
-            showEmptySlots: showEmptySlots.checked
-        });
-        applyTheme(selectedTheme);
-        alert("Configurações salvas no Banco de Dados!");
+        const selectedTheme = themeDark.checked ? "dark" : "light";
+        const payload = {
+            tema_escuro: selectedTheme === "dark",
+            inicio_semana: weekStart.value,
+            notificacoes_ativas: notificationToggle.checked,
+            mostrar_horarios_vazios: showEmptySlots.checked
+        };
+        await api.put('/configuracoes', payload);
+        alert("Configurações salvas no Supabase!");
+        await carregarDadosDoBanco();
     } catch(e) {
-        alert("Erro ao salvar configurações");
+        alert("Erro ao salvar configs.");
     }
   };
 
@@ -297,16 +374,22 @@ document.addEventListener("DOMContentLoaded", () => {
     navItems.forEach((item) => {
       item.classList.toggle("active", item.dataset.view === viewName);
     });
-    if (window.innerWidth <= 900) sidebar.classList.remove("open");
+    if (window.innerWidth <= 900) {
+      sidebar.classList.remove("open");
+    }
   };
 
   navItems.forEach((item) => {
-    item.addEventListener("click", () => setActiveView(item.dataset.view));
+    item.addEventListener("click", () => {
+      setActiveView(item.dataset.view);
+    });
   });
 
   const handleModalClose = () => {
     [spaceModal, blockModal, reminderModal].forEach((modal) => {
-      if (!modal.classList.contains("hidden")) closeModal(modal);
+      if (!modal.classList.contains("hidden")) {
+        closeModal(modal);
+      }
     });
   };
 
@@ -324,6 +407,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSpaces();
     renderScheduleBlocks();
     renderReminderList();
+    renderUsuarios();
   };
 
   document.querySelectorAll(".close-modal").forEach((button) => {
@@ -353,71 +437,69 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal(reminderModal);
   });
 
-  // SUBMITS CONECTADOS À API 
   spaceForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const id = spaceIdInput.value;
     const payload = {
-      name: spaceName.value.trim(),
-      capacity: Number(spaceCapacity.value),
-      status: spaceStatus.value,
+        name: spaceName.value.trim(),
+        capacity: Number(spaceCapacity.value),
+        status: spaceStatus.value
     };
+
     try {
-        const res = id ? await api.request(`/espacos/${id}`, 'PUT', payload) : await api.request('/espacos', 'POST', payload);
-        if (res.sucesso) {
-            if (id) spaces = spaces.map(s => s.id === id ? res.espaco : s);
-            else spaces.push(res.espaco);
-            updateDashboard();
-            closeModal(spaceModal);
-        }
-    } catch(e) { alert("Falha ao salvar espaço."); }
+        if(id) await api.put(`/espacos/${id}`, payload);
+        else await api.post('/espacos', payload);
+        await carregarDadosDoBanco();
+        closeModal(spaceModal);
+    } catch(e) {
+        alert("Erro ao salvar espaço");
+    }
   });
 
   blockForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!validateBlockTimes()) return;
+
     const id = blockIdInput.value;
     const payload = {
-      day: blockDay.value,
-      start: blockStart.value,
-      end: blockEnd.value,
-      reason: blockReason.value.trim(),
+        day: blockDay.value,
+        start: blockStart.value,
+        end: blockEnd.value,
+        reason: blockReason.value.trim()
     };
+
     try {
-        const res = id ? await api.request(`/bloqueios/${id}`, 'PUT', payload) : await api.request('/bloqueios', 'POST', payload);
-        if (res.sucesso) {
-            if (id) blocks = blocks.map(b => b.id === id ? res.bloqueio : b);
-            else blocks.push(res.bloqueio);
-            updateDashboard();
-            closeModal(blockModal);
-        }
-    } catch(e) { alert("Falha ao salvar bloqueio."); }
+        if(id) await api.put(`/bloqueios/${id}`, payload);
+        else await api.post('/bloqueios', payload);
+        await carregarDadosDoBanco();
+        closeModal(blockModal);
+    } catch(e) {
+        alert("Erro ao salvar bloqueio.");
+    }
   });
 
   reminderForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const id = reminderIdInput.value;
     const payload = {
-      title: reminderTitle.value.trim(),
-      time: reminderTime.value,
-      notes: reminderNotes.value.trim(),
-      status: reminderStatus.value,
+        title: reminderTitle.value.trim(),
+        time: reminderTime.value,
+        notes: reminderNotes.value.trim(),
+        status: reminderStatus.value
     };
+
     try {
-        const res = id ? await api.request(`/lembretes/${id}`, 'PUT', payload) : await api.request('/lembretes', 'POST', payload);
-        if (res.sucesso) {
-            if (id) reminders = reminders.map(r => r.id === id ? res.lembrete : r);
-            else reminders.push(res.lembrete);
-            updateDashboard();
-            closeModal(reminderModal);
-        }
-    } catch(e) { alert("Falha ao salvar lembrete."); }
+        if(id) await api.put(`/lembretes/${id}`, payload);
+        else await api.post('/lembretes', payload);
+        await carregarDadosDoBanco();
+        closeModal(reminderModal);
+    } catch(e) {
+        alert("Erro ao salvar lembrete");
+    }
   });
 
   saveConfigBtn.addEventListener("click", saveConfig);
-
   mobileNavToggle.addEventListener("click", () => sidebar.classList.toggle("open"));
-
   document.addEventListener("click", (event) => {
     if (window.innerWidth <= 900 && sidebar.classList.contains("open")) {
       if (!sidebar.contains(event.target) && event.target !== mobileNavToggle) sidebar.classList.remove("open");
@@ -426,6 +508,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   logoutBtn.addEventListener("click", logout);
 
-  // INICIALIZAÇÃO
-  carregarDadosDoBanco();
+  await carregarDadosDoBanco();
 });

@@ -10,7 +10,7 @@
   <body>
     <script src="../services/authService.js"></script>
     <script src="../services/api.js"></script>
-    <script src="../middlewares/check-auth.js"></script>
+    <script src="../services/checkAuth.js"></script>
 
     <div class="dashboard-container">
       <!-- SIDEBAR -->
@@ -27,6 +27,7 @@
               <li data-view="schedule">Bloqueio de horários</li>
               <li data-view="agenda">Personalização da agenda</li>
               <li data-view="reminders">Lembretes</li>
+              <li data-view="usuarios">Usuários</li>
             </ul>
           </nav>
         </div>
@@ -55,23 +56,23 @@
           <div class="cards">
             <div class="card">
               <h3>Agendamentos</h3>
-              <p>Carregando...</p>
-              <span class="card-meta"></span>
+              <p>24 hoje</p>
+              <span class="card-meta">Próximo em 30 min</span>
             </div>
             <div class="card">
               <h3>Clientes</h3>
-              <p>Carregando...</p>
-              <span class="card-meta"></span>
+              <p>120 cadastrados</p>
+              <span class="card-meta">8 novos esta semana</span>
             </div>
             <div class="card">
               <h3>Espaços</h3>
-              <p>Carregando...</p>
-              <span class="card-meta"></span>
+              <p>6 disponíveis</p>
+              <span class="card-meta">2 reservas em espera</span>
             </div>
             <div class="card">
               <h3>Lembretes</h3>
-              <p>Carregando...</p>
-              <span class="card-meta"></span>
+              <p>3 pendentes</p>
+              <span class="card-meta">Enviar hoje</span>
             </div>
           </div>
 
@@ -218,6 +219,36 @@
           </div>
 
           <div class="reminder-list" id="reminderList"></div>
+        </section>
+
+        <section id="viewUsuarios" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Gestão de Usuários</h2>
+              <p>Controle o acesso e visualize todos os clientes e profissionais cadastrados.</p>
+            </div>
+            <select id="userFilter" class="primary" style="background-color: white; color: black; border: 1px solid #ddd; padding: 8px; border-radius: 6px;">
+              <option value="todos">Ver todos</option>
+              <option value="1">Clientes</option>
+              <option value="2">Profissionais</option>
+              <option value="3">Administradores</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Cargo</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="usuariosTableBody"></tbody>
+            </table>
+          </div>
         </section>
       </main>
 

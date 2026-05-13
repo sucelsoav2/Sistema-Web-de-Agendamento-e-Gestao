@@ -10,7 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   if (authService.isAuthenticated()) {
-    window.location.href = "./dashboard.html";
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.role_id === 1) {
+        window.location.href = "./client-dashboard.html";
+    } else {
+        window.location.href = "./dashboard.html";
+    }
     return;
   }
 
@@ -20,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
     senhaInput.classList.toggle("error-input", Boolean(message));
   };
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     showError("");
     submitButton.disabled = true;
@@ -51,8 +56,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      authService.login(email, senha);
-      window.location.href = "./dashboard.html";
+      await authService.login(email, senha);
+      
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user && user.role_id === 1) {
+          window.location.href = "./client-dashboard.html";
+      } else {
+          window.location.href = "./dashboard.html";
+      }
     } catch (error) {
       showError(error.message || "Erro ao autenticar");
     } finally {

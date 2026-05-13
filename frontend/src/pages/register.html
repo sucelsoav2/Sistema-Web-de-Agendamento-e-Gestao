@@ -1,107 +1,102 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Cadastro - AgendaFlow</title>
 
-    <link rel="stylesheet" href="../styles/global.css" />
-    <link rel="stylesheet" href="../styles/register.css" />
-  </head>
-  <body>
-    <div class="register-page">
-      <section class="visual-panel" aria-label="Apresentação da AgendaFlow">
-        <div class="visual-content">
-          <span class="eyebrow">Bem-vindo ao AgendaFlow</span>
-          <h1>Crie sua conta e transforme sua gestão de agendamentos.</h1>
+<head>
+  <meta charset="UTF-8" />
+  <title>Cadastro - AgendaFlow</title>
+
+  <link rel="stylesheet" href="../styles/global.css" />
+  <link rel="stylesheet" href="../styles/register.css" />
+</head>
+
+<body>
+  <div class="register-page">
+    <section class="visual-panel" aria-label="Apresentação da AgendaFlow">
+      <div class="visual-content">
+        <span class="eyebrow">Bem-vindo ao AgendaFlow</span>
+        <h1>Crie sua conta e transforme sua gestão de agendamentos.</h1>
+        <p>
+          Um painel moderno, seguro e acessível para controlar espaços,
+          bloqueios e lembretes em tempo real.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <strong>Design sofisticado</strong>
+            <p>Com visual clean e responsivo.</p>
+          </div>
+          <div class="feature-item">
+            <strong>Fácil cadastro</strong>
+            <p>Comece em poucos segundos.</p>
+          </div>
+        </div>
+      </div>
+      <div class="visual-shapes" aria-hidden="true">
+        <div class="shape shape-circle"></div>
+        <div class="shape shape-triangle"></div>
+        <div class="shape shape-square"></div>
+      </div>
+    </section>
+
+    <section class="form-panel" aria-label="Formulário de cadastro">
+      <div class="form-card">
+        <div class="form-header">
+          <h2>Cadastre-se</h2>
           <p>
-            Um painel moderno, seguro e acessível para controlar espaços,
-            bloqueios e lembretes em tempo real.
+            Preencha seus dados e escolha o modo de visualização preferido.
           </p>
-
-          <div class="feature-list">
-            <div class="feature-item">
-              <strong>Design sofisticado</strong>
-              <p>Com visual clean e responsivo.</p>
-            </div>
-            <div class="feature-item">
-              <strong>Fácil cadastro</strong>
-              <p>Comece em poucos segundos.</p>
-            </div>
-          </div>
         </div>
-        <div class="visual-shapes" aria-hidden="true">
-          <div class="shape shape-circle"></div>
-          <div class="shape shape-triangle"></div>
-          <div class="shape shape-square"></div>
-        </div>
-      </section>
 
-      <section class="form-panel" aria-label="Formulário de cadastro">
-        <div class="form-card">
-          <div class="form-header">
-            <h2>Cadastre-se</h2>
-            <p>
-              Preencha seus dados e escolha o modo de visualização preferido.
-            </p>
+        <form id="registerForm">
+          <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;">
+            <div id="profilePicPreview" style="width: 100px; height: 100px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #e5e7eb; margin-bottom: 10px;">
+              <span id="placeholderIcon" style="font-size: 40px; color: #9ca3af;">👤</span>
+              <img id="previewImg" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
+            </div>
+            <label for="fotoInput" style="background: #2563eb; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: 500;">Escolher Foto</label>
+            <input type="file" id="fotoInput" accept="image/*" style="display: none;" />
+            <input type="hidden" id="fotoBase64" />
           </div>
 
-          <form id="registerForm">
-            <label for="nome">Nome completo</label>
-            <input
-              type="text"
-              id="nome"
-              placeholder="Ex: Maria Silva"
-              required
-            />
+          <label for="nome">Nome completo</label>
+          <input type="text" id="nome" placeholder="Ex: Maria Silva" required />
 
-            <label for="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              placeholder="seu@email.com"
-              required
-            />
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="seu@email.com" required />
 
-            <label for="senha">Senha</label>
-            <input
-              type="password"
-              id="senha"
-              placeholder="Mínimo 6 caracteres"
-              required
-            />
+          <label for="telefone">Telefone</label>
+          <input type="tel" id="telefone" placeholder="(71) 99999-9999" required />
 
-            <label for="confirmSenha">Confirme a senha</label>
-            <input
-              type="password"
-              id="confirmSenha"
-              placeholder="Repita sua senha"
-              required
-            />
+          <label for="data_nascimento">Data de Nascimento</label>
+          <input type="date" id="data_nascimento" required />
 
-            <div class="theme-switch">
-              <span>Tela Escura</span>
-              <label class="switch">
-                <input
-                  type="checkbox"
-                  id="themeToggle"
-                  aria-label="Ativar modo escuro"
-                />
-                <span class="slider"></span>
-              </label>
-            </div>
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="Mínimo 6 caracteres" required />
 
-            <span id="registerError" class="error"></span>
-            <button type="submit" class="btn-primary">Criar conta</button>
-          </form>
+          <label for="confirmSenha">Confirme a senha</label>
+          <input type="password" id="confirmSenha" placeholder="Repita sua senha" required />
 
-          <div class="register-footer">
-            <p>Já tem conta? <a href="./login.html">Faça login</a></p>
+          <div class="theme-switch">
+            <span>Tela Escura</span>
+            <label class="switch">
+              <input type="checkbox" id="themeToggle" aria-label="Ativar modo escuro" />
+              <span class="slider"></span>
+            </label>
           </div>
-        </div>
-      </section>
-    </div>
 
-    <script src="../services/authService.js"></script>
-    <script src="./register.js"></script>
-  </body>
+          <span id="registerError" class="error"></span>
+          <button type="submit" class="btn-primary">Criar conta</button>
+        </form>
+
+        <div class="register-footer">
+          <p>Já tem conta? <a href="./login.html">Faça login</a></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="../services/authService.js"></script>
+  <script src="./register.js"></script>
+</body>
+
 </html>

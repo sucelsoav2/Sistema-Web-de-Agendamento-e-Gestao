@@ -3,14 +3,20 @@
 const API_BASE_URL = 'http://localhost:3000';
 
 const api = {
-    async request(path, options = {}) {
-        const response = await fetch(`${API_BASE_URL}${path}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(options.headers || {})
-            },
-            ...options
-        });
+  async request(path, options = {}) {
+    const token = typeof authService !== 'undefined' ? authService.getToken() : localStorage.getItem('token');
+    
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      },
+      ...options
+    });
 
         const body = await response.json().catch(() => null);
         if (!response.ok) {
