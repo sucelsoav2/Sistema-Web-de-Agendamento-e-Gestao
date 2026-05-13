@@ -1,74 +1,49 @@
-const authService = require("../services/authService");
-const supabase = require("../config/database");
+const supabase = require('../config/database');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 class AuthController {
   async registrar(req, res) {
     try {
-      const { nome, email, senha, tipo } = req.body;
+      const { nome, email, senha, tipo, telefone, data_nascimento, foto_perfil } = req.body;
 
-      if (!nome || !email || !senha) {
-        return res.status(400).json({ sucesso: false, mensagem: "Nome, email e senha são obrigatórios" });
+      if (!nome || !email || !senha || !telefone || !data_nascimento || !foto_perfil) {
+        return res.status(400).json({ sucesso: false, mensagem: "Todos os campos (incluindo foto e telefone) são obrigatórios" });
       }
 
-      if (!authService.validarEmail(email)) {
-        return res.status(400).json({ sucesso: false, mensagem: "Email inválido" });
+      console.log("--- TENTATIVA DE CADASTRO ---");
+      console.log("Campos recebidos:", { nome, email, telefone, data_nascimento, foto_tamanho: foto_perfil ? foto_perfil.length : 0 });
+
+      const senhaHash = await bcrypt.hash(senha, 10);
+
+      const { data, error } = await supabase.from('usuarios').insert([{
+        nome,
+        email,
+        senha_hash: senhaHash,
+        tipo: tipo || 'profissional',
+        telefone,
+        data_nascimento,
+        foto_perfil
+      }]).select().single();
+
+      if (error) {
+        console.error("ERRO SUPABASE NO REGISTRO:", error);
+        if (error.code === '23505') return res.status(409).json({ sucesso: false, mensagem: "Email já cadastrado" });
+        throw error;
       }
 
-      const validacaoSenha = authService.validarSenha(senha);
-      if (!validacaoSenha.valido) {
-        return res.status(400).json({ sucesso: false, mensagem: validacaoSenha.mensagem });
-      }
-
-      // Verifica se o email já existe no Supabase
-      const { data: usuarioExistente, error: errExistente } = await supabase
-        .from('usuarios')
-        .select('id')
-        .eq('email', email)
-        .single();
-
-      if (usuarioExistente) {
-        return res.status(409).json({ sucesso: false, mensagem: "Email já cadastrado" });
-      }
-
-      const senhaCriptografada = await authService.criptografarSenha(senha);
-
-      // Inserir novo usuário no Supabase
-      const { data: novoUsuario, error: erroInsert } = await supabase
-        .from('usuarios')
-        .insert([{ 
-          nome, 
-          email, 
-          senha_hash: senhaCriptografada, 
-          tipo: tipo || 'profissional' 
-        }])
-        .select()
-        .single();
-
-      if (erroInsert) {
-        throw erroInsert;
-      }
-
-      // Cria a configuração padrão de agenda para este novo profissional
-      if (novoUsuario.tipo === 'profissional') {
-          await supabase.from('configuracoes_agenda').insert([{ usuario_id: novoUsuario.id }]);
-      }
-
-      const token = authService.gerarToken(novoUsuario.id, email);
+      console.log("USUÁRIO CADASTRADO COM SUCESSO!");
+      const token = jwt.sign({ id: data.id, email: data.email, tipo: data.tipo }, process.env.JWT_SECRET || 'sua_chave_secreta_aqui', { expiresIn: '24h' });
 
       return res.status(201).json({
         sucesso: true,
         mensagem: "Usuário registrado com sucesso",
         token: token,
-        usuario: {
-          id: novoUsuario.id,
-          nome: novoUsuario.nome,
-          email: novoUsuario.email,
-          tipo: novoUsuario.tipo,
-        },
+        usuario: { id: data.id, nome, email, tipo: data.tipo, role_id: data.role_id },
       });
     } catch (erro) {
-      console.error("Erro ao registrar:", erro);
-      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
+      console.error("ERRO CRÍTICO NO REGISTRO:", erro.message);
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor: " + erro.message });
     }
   }
 
@@ -80,35 +55,25 @@ class AuthController {
         return res.status(400).json({ sucesso: false, mensagem: "Email e senha são obrigatórios" });
       }
 
-      // Buscar usuário no Supabase
-      const { data: usuario, error } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const { data: usuario, error } = await supabase.from('usuarios').select('*').eq('email', email).single();
 
       if (error || !usuario) {
         return res.status(401).json({ sucesso: false, mensagem: 'Usuário ou senha inválidos' });
       }
 
-      // Comparar senha
-      const senhaValida = await authService.compararSenha(senha, usuario.senha_hash);
+      const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
+
       if (!senhaValida) {
         return res.status(401).json({ sucesso: false, mensagem: 'Usuário ou senha inválidos' });
       }
 
-      const token = authService.gerarToken(usuario.id, email);
+      const token = jwt.sign({ id: usuario.id, email: usuario.email, tipo: usuario.tipo }, process.env.JWT_SECRET || 'sua_chave_secreta_aqui', { expiresIn: '24h' });
 
       return res.status(200).json({
         sucesso: true,
         mensagem: "Login realizado com sucesso",
         token: token,
-        usuario: {
-          id: usuario.id,
-          nome: usuario.nome,
-          email: usuario.email,
-          tipo: usuario.tipo,
-        },
+        usuario: { id: usuario.id, nome: usuario.nome, email, tipo: usuario.tipo, role_id: usuario.role_id },
       });
     } catch (erro) {
       console.error("Erro ao fazer login:", erro);
@@ -119,65 +84,12 @@ class AuthController {
   async obterPerfil(req, res) {
     try {
       const usuarioToken = req.auth;
+      const { data, error } = await supabase.from('usuarios').select('id, nome, email, telefone, tipo').eq('id', usuarioToken.id).single();
 
-      const { data: usuario, error } = await supabase
-        .from('usuarios')
-        .select('id, nome, email, telefone, tipo')
-        .eq('id', usuarioToken.id)
-        .single();
+      if (error || !data) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado" });
 
-      if (error || !usuario) {
-          return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado" });
-      }
-
-      return res.status(200).json({
-        sucesso: true,
-        mensagem: "Perfil obtido com sucesso",
-        usuario,
-      });
+      return res.status(200).json({ sucesso: true, usuario: data });
     } catch (erro) {
-      console.error("Erro ao obter perfil:", erro);
-      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
-    }
-  }
-
-  async logout(req, res) {
-    // Logout em JWT statless é apenas no client.
-    return res.status(200).json({
-      sucesso: true,
-      mensagem: "Logout realizado com sucesso",
-    });
-  }
-
-  async atualizarPerfil(req, res) {
-    try {
-      const { nome, telefone } = req.body;
-      const usuarioToken = req.auth;
-
-      if (!nome && !telefone) {
-        return res.status(400).json({ sucesso: false, mensagem: "Forneça ao menos um campo para atualizar" });
-      }
-
-      const updateData = {};
-      if (nome) updateData.nome = nome;
-      if (telefone !== undefined) updateData.telefone = telefone;
-
-      const { data: usuarioAtualizado, error } = await supabase
-        .from('usuarios')
-        .update(updateData)
-        .eq('id', usuarioToken.id)
-        .select('id, nome, email, telefone, tipo')
-        .single();
-
-      if (error) throw error;
-
-      return res.status(200).json({
-        sucesso: true,
-        mensagem: "Perfil atualizado com sucesso",
-        usuario: usuarioAtualizado,
-      });
-    } catch (erro) {
-      console.error("Erro ao atualizar perfil:", erro);
       return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
     }
   }

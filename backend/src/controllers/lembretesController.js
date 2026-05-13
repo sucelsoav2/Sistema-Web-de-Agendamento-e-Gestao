@@ -3,7 +3,8 @@ const supabase = require('../config/database');
 class LembretesController {
     async listar(req, res) {
         try {
-            const { data, error } = await supabase.from('lembretes').select('*').order('criado_em', { ascending: false });
+            const usuarioId = req.auth.id;
+            const { data, error } = await supabase.from('lembretes').select('*').eq('usuario_id', usuarioId).order('criado_em', { ascending: false });
             if (error) throw error;
             const lembretesMapeados = data.map(l => ({
                 id: l.id,
@@ -20,13 +21,14 @@ class LembretesController {
 
     async criar(req, res) {
         try {
+            const usuarioId = req.auth.id;
             const { title, time, notes, status } = req.body;
             // Cria uma data programada ficticia para hoje usando a hora fornecida
             const hoje = new Date().toISOString().split('T')[0];
             const dataProgramada = `${hoje}T${time}:00Z`;
 
             const { data, error } = await supabase.from('lembretes')
-                .insert([{ titulo: title, data_programada: dataProgramada, mensagem: notes, status }])
+                .insert([{ usuario_id: usuarioId, titulo: title, data_programada: dataProgramada, mensagem: notes, status }])
                 .select()
                 .single();
             if (error) throw error;
@@ -39,6 +41,7 @@ class LembretesController {
     async atualizar(req, res) {
         try {
             const { id } = req.params;
+            const usuarioId = req.auth.id;
             const { title, time, notes, status } = req.body;
             const hoje = new Date().toISOString().split('T')[0];
             const dataProgramada = `${hoje}T${time}:00Z`;
@@ -46,10 +49,22 @@ class LembretesController {
             const { data, error } = await supabase.from('lembretes')
                 .update({ titulo: title, data_programada: dataProgramada, mensagem: notes, status })
                 .eq('id', id)
+                .eq('usuario_id', usuarioId)
                 .select()
                 .single();
             if (error) throw error;
             res.json({ sucesso: true, lembrete: { id: data.id, title: data.titulo, time, notes: data.mensagem, status: data.status } });
+        } catch (error) {
+            res.status(500).json({ sucesso: false, erro: error.message });
+        }
+    }
+    async deletar(req, res) {
+        try {
+            const { id } = req.params;
+            const usuarioId = req.auth.id;
+            const { error } = await supabase.from('lembretes').delete().eq('id', id).eq('usuario_id', usuarioId);
+            if (error) throw error;
+            res.json({ sucesso: true });
         } catch (error) {
             res.status(500).json({ sucesso: false, erro: error.message });
         }

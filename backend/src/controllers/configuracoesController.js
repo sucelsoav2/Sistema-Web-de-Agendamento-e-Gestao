@@ -19,21 +19,22 @@ class ConfiguracoesController {
     async atualizar(req, res) {
         try {
             const usuarioId = req.auth.id;
-            const { theme, weekStart, notifications, showEmptySlots } = req.body;
             
-            // Opcional: Você pode mapear isso para colunas reais no banco depois, mas por ora vamos armazenar como JSONB para simplificar
             const configPayload = {
                 usuario_id: usuarioId,
-                visualizacao_padrao: weekStart === 'monday' ? 'semanal' : 'diaria'
+                tema_escuro: req.body.tema_escuro || false,
+                inicio_semana: req.body.inicio_semana || 'monday',
+                notificacoes_ativas: req.body.notificacoes_ativas ?? true,
+                mostrar_horarios_vazios: req.body.mostrar_horarios_vazios ?? true
             };
 
             const { data, error } = await supabase.from('configuracoes_agenda')
-                .update(configPayload)
-                .eq('usuario_id', usuarioId)
+                .upsert(configPayload, { onConflict: 'usuario_id' })
                 .select()
                 .single();
+            if (error) throw error;
                 
-            res.json({ sucesso: true });
+            res.json({ sucesso: true, configuracao: data });
         } catch (error) {
             res.status(500).json({ sucesso: false, erro: error.message });
         }
