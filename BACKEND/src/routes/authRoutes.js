@@ -1,7 +1,34 @@
 const express = require("express");
 const router = express.Router();
+const { expressjwt: jwt } = require("express-jwt");
+const authController = require("../controllers/authController");
 
-router.get("/home", (req, res) => {
-  res.status(200).json({ mensagem: "Home da autenticação" });
+// configuração do express-jwt
+// middleware que protege as rotas
+const verificarToken = jwt({
+  secret: process.env.JWT_SECRET || "sua_chave_secreta_aqui",
+  algorithms: ["HS256"],
+  requestProperty: "auth", // token decodificado fica em req.auth
 });
+
+// rotas públicas
+// criar novo usuário
+router.post("/registrar", authController.registrar);
+// autenticar usuário
+router.post("/login", authController.login);
+
+// rotas protegidas 
+// precisa de token válido no header: Authorization: Bearer SEU_TOKEN
+router.get("/perfil", verificarToken, authController.obterPerfil);
+
+// fazer logout
+router.post("/logout", verificarToken, authController.logout);
+
+// atualizar dados do usuário
+// precisa de token válido no header
+router.put("/atualizar-perfil", verificarToken, authController.atualizarPerfil);
+
 module.exports = router;
+
+router.post("/registrar", (req, res) => {});
+router.get("/perfil", (req, res) => {});
