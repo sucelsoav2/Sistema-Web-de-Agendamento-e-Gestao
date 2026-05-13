@@ -1,1 +1,0 @@
-// Gerencia espaços/salas (CRUD)
