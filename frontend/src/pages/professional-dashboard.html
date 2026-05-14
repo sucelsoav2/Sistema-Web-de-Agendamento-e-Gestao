@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Painel do Profissional - AgendaFlow</title>
+    <link rel="stylesheet" href="../styles/global.css" />
+    <link rel="stylesheet" href="../styles/dashboard.css" />
+  </head>
+  <body>
+    <script src="../services/authService.js"></script>
+    <script src="../services/api.js"></script>
+    <script src="../services/checkAuth.js"></script>
+
+    <div class="dashboard-container">
+      <aside class="sidebar">
+        <div>
+          <h2>AgendaFlow</h2>
+          <nav>
+            <ul>
+              <li class="active" data-view="dashboard">Painel profissional</li>
+              <li data-view="week">Minha semana</li>
+              <li data-view="appointments">Meus agendamentos</li>
+              <li data-view="blocks">Bloquear horários</li>
+              <li data-view="agenda">Configurar agenda</li>
+              <li data-view="rooms">Disponibilidade de salas</li>
+              <li data-view="reminders">Lembretes</li>
+            </ul>
+          </nav>
+        </div>
+        <button id="logoutBtn">Sair</button>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <h1>Painel do Profissional</h1>
+            <p class="subtext">Acompanhe sua agenda e consulte salas disponíveis.</p>
+          </div>
+          <div class="topbar-actions">
+            <button id="mobileNavToggle" class="mobile-nav-toggle">Menu</button>
+            <div class="user-info"><span id="userEmail">Profissional</span></div>
+          </div>
+        </header>
+
+        <section id="viewDashboard" class="view active">
+          <div class="cards">
+            <div class="card">
+              <h3>Agendamentos</h3>
+              <p id="appointmentsMetric">0 totais</p>
+              <span class="card-meta" id="nextAppointmentMetric">Nenhum agendamento futuro</span>
+            </div>
+            <div class="card">
+              <h3>Lembretes</h3>
+              <p id="remindersMetric">0 pendentes</p>
+              <span class="card-meta" id="remindersTotalMetric">0 totais</span>
+            </div>
+          </div>
+
+          <div class="section-grid">
+            <div class="content-box">
+              <h2>Resumo da semana</h2>
+              <p id="weeklySummary">Carregando sua agenda...</p>
+            </div>
+            <div class="content-box highlight">
+              <h2>Próxima reunião</h2>
+              <p id="nextAppointmentBox">Nenhuma reunião encontrada.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="viewWeek" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Minha semana</h2>
+              <p>Visualização semanal dos seus compromissos.</p>
+            </div>
+          </div>
+          <div class="calendar-grid" id="weeklyCalendar"></div>
+        </section>
+
+        <section id="viewAppointments" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Meus agendamentos</h2>
+              <p>Lista completa das reuniões marcadas com você.</p>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Cliente</th>
+                  <th>Formato</th>
+                  <th>Sala</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="appointmentsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="viewBlocks" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Bloquear horários</h2>
+              <p>Defina períodos de indisponibilidade na sua agenda.</p>
+            </div>
+          </div>
+          <div class="section-grid">
+            <div class="content-box">
+              <form id="blockForm" style="display: grid; gap: 16px;">
+                <label>Data do bloqueio
+                  <input type="date" id="blockDate" required />
+                </label>
+                <label>Horário inicial
+                  <input type="time" id="blockStart" min="08:00" max="18:00" step="1800" required />
+                </label>
+                <label>Duração
+                  <select id="blockDuration" required>
+                    <option value="hoje">Apenas este horário hoje</option>
+                    <option value="amanha_manha">Até amanhã de manhã</option>
+                    <option value="fim_dia">Até o fim do dia</option>
+                    <option value="sempre">Sempre neste dia e horário</option>
+                    <option value="personalizado">Tempo personalizado</option>
+                  </select>
+                </label>
+                <div id="customBlockEnd" style="display: none; gap: 12px; grid-template-columns: 1fr 1fr;">
+                  <label>Data final
+                    <input type="date" id="blockCustomEndDate" />
+                  </label>
+                  <label>Horário final
+                    <input type="time" id="blockCustomEndTime" step="1800" />
+                  </label>
+                </div>
+                <label>Motivo
+                  <input type="text" id="blockReason" placeholder="Ex: atendimento externo, reunião interna, férias" required />
+                </label>
+                <button type="submit" class="primary">Salvar bloqueio</button>
+              </form>
+            </div>
+            <div class="content-box highlight">
+              <h2>Como funciona</h2>
+              <p>Bloqueios salvos aqui deixam os horários indisponíveis para clientes em Salvador/Bahia.</p>
+              <p class="card-meta">A opção “sempre” repete esse mesmo dia da semana e horário.</p>
+            </div>
+          </div>
+          <div class="reminder-list" id="blocksList" style="margin-top: 24px;"></div>
+        </section>
+
+        <section id="viewAgenda" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Configurar agenda</h2>
+              <p>Ajuste a visualização da sua rotina e preferências de notificação.</p>
+            </div>
+            <button class="primary" id="saveProfessionalConfigBtn">Salvar configurações</button>
+          </div>
+
+          <div class="settings-grid">
+            <div class="settings-card theme-card">
+              <h3>Tema</h3>
+              <div class="theme-options">
+                <label class="radio-item">
+                  <input type="radio" name="professionalTheme" id="professionalThemeLight" value="light" />
+                  <span>Claro</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="professionalTheme" id="professionalThemeDark" value="dark" />
+                  <span>Escuro</span>
+                </label>
+              </div>
+            </div>
+            <div class="settings-card">
+              <h3>Início da semana</h3>
+              <select id="professionalWeekStart">
+                <option value="monday">Segunda-feira</option>
+                <option value="sunday">Domingo</option>
+              </select>
+            </div>
+            <div class="settings-card notifications-card" id="professionalNotificationsCard">
+              <h3>Notificações</h3>
+              <div class="notification-toggle-row">
+                <label class="switch">
+                  <input type="checkbox" id="professionalNotificationToggle" />
+                  <span class="slider"></span>
+                </label>
+                <span class="notification-state" id="professionalNotificationStateLabel">Ativo</span>
+              </div>
+            </div>
+            <div class="settings-card">
+              <h3>Agenda padrão</h3>
+              <p>Exibir slot de 30 minutos</p>
+              <label><input type="checkbox" id="professionalShowEmptySlots" /> Mostrar horários vazios</label>
+            </div>
+          </div>
+        </section>
+
+        <section id="viewRooms" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Disponibilidade de salas</h2>
+              <p>Consulte a melhor sala disponível por data, horário e quantidade de pessoas.</p>
+            </div>
+          </div>
+          <div class="content-box">
+            <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: end;">
+              <label>Data <input type="date" id="roomDate" /></label>
+              <label>Horário <input type="time" id="roomTime" min="08:00" max="18:00" step="1800" /></label>
+              <label>Pessoas <input type="number" id="roomPeople" min="1" value="1" /></label>
+              <button class="primary" id="checkRoomsBtn">Consultar</button>
+            </div>
+            <div id="roomAvailabilityResult" class="reminder-list" style="margin-top: 22px;"></div>
+          </div>
+        </section>
+
+        <section id="viewReminders" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Lembretes</h2>
+              <p>Alertas cadastrados para sua rotina.</p>
+            </div>
+          </div>
+          <div class="reminder-list" id="reminderList"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./professional-dashboard.js"></script>
+  </body>
+</html>

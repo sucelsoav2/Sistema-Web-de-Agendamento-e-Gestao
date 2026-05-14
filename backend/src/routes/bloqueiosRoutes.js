@@ -5,9 +5,9 @@ const bloqueiosController = require('../controllers/bloqueiosController');
 
 const verificarToken = jwt({ secret: process.env.JWT_SECRET || "sua_chave_secreta_aqui", algorithms: ["HS256"], requestProperty: "auth" });
 
-router.get('/', verificarToken, bloqueiosController.listar);
-router.post('/', verificarToken, bloqueiosController.criar);
-router.put('/:id', verificarToken, bloqueiosController.atualizar);
-router.delete('/:id', verificarToken, bloqueiosController.deletar);
+router.get('/', verificarToken, bloqueiosController.listar.bind(bloqueiosController));
+router.post('/', verificarToken, bloqueiosController.criar.bind(bloqueiosController));
+router.put('/:id', verificarToken, bloqueiosController.atualizar.bind(bloqueiosController));
+router.delete('/:id', verificarToken, bloqueiosController.deletar.bind(bloqueiosController));
 
 module.exports = router;

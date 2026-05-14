@@ -20,6 +20,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scheduleBlocksList = document.getElementById("scheduleBlocksList");
   const reminderList = document.getElementById("reminderList");
   const modalOverlay = document.getElementById("modalOverlay");
+  const adminAppointmentsTableBody = document.getElementById("adminAppointmentsTableBody");
+  const adminAppointmentDateFilter = document.getElementById("adminAppointmentDateFilter");
+  const adminAppointmentStatusFilter = document.getElementById("adminAppointmentStatusFilter");
+  const adminAppointmentProfessionalFilter = document.getElementById("adminAppointmentProfessionalFilter");
+  const adminAppointmentRoomFilter = document.getElementById("adminAppointmentRoomFilter");
+  const clearAppointmentFiltersBtn = document.getElementById("clearAppointmentFiltersBtn");
 
   const spaceModal = document.getElementById("spaceModal");
   const blockModal = document.getElementById("blockModal");
@@ -64,6 +70,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   let agendamentos = [];
   let usuarios = [];
   let settings = { theme: "light", weekStart: "monday", notifications: true, showEmptySlots: true };
+
+  const formatDateTime = (value) => {
+    if (!value) return "";
+    return new Date(value).toLocaleString("pt-BR", {
+      timeZone: "America/Bahia",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
+  const formatDateKey = (value) => {
+    if (!value) return "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Bahia",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(new Date(value));
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  };
 
   const carregarDadosDoBanco = async () => {
       try {
@@ -155,24 +185,86 @@ document.addEventListener("DOMContentLoaded", async () => {
     const cards = document.querySelectorAll(".cards .card");
     const activeSpaces = spaces.filter((item) => item.status === "Ativo").length;
     const pendingReminders = reminders.filter((item) => item.status === "Pendente").length;
+    const totalClientes = usuarios.filter((item) => Number(item.role_id) === 1).length || clientes.length;
+    const totalProfissionais = usuarios.filter((item) => Number(item.role_id) === 2).length;
+    const agendamentosAtivos = agendamentos.filter((item) => item.status !== "cancelado").length;
 
-    if (cards.length >= 4) {
-      // 0 = Agendamentos
+    if (cards.length >= 5) {
       cards[0].querySelector("p").textContent = `${agendamentos.length} totais`;
-      cards[0].querySelector(".card-meta").textContent = agendamentos.length ? `Visualizar painel completo` : "Nenhum agendamento";
+      cards[0].querySelector(".card-meta").textContent = `${agendamentosAtivos} ativos`;
       
-      // 1 = Clientes
-      cards[1].querySelector("p").textContent = `${clientes.length} cadastrados`;
-      cards[1].querySelector(".card-meta").textContent = "Base atualizada";
+      cards[1].querySelector("p").textContent = `${totalClientes} cadastrados`;
+      cards[1].querySelector(".card-meta").textContent = "Contas de clientes";
       
-      // 2 = Espaços
-      cards[2].querySelector("p").textContent = `${activeSpaces} disponíveis`;
-      cards[2].querySelector(".card-meta").textContent = `${spaces.length - activeSpaces} inativos / reservados`;
+      cards[2].querySelector("p").textContent = `${totalProfissionais} cadastrados`;
+      cards[2].querySelector(".card-meta").textContent = "Contas profissionais";
       
-      // 3 = Lembretes
-      cards[3].querySelector("p").textContent = `${pendingReminders} pendentes`;
-      cards[3].querySelector(".card-meta").textContent = `${reminders.length} totais`;
+      cards[3].querySelector("p").textContent = `${activeSpaces} disponíveis`;
+      cards[3].querySelector(".card-meta").textContent = `${spaces.length - activeSpaces} inativos / reservados`;
+      
+      cards[4].querySelector("p").textContent = `${pendingReminders} pendentes`;
+      cards[4].querySelector(".card-meta").textContent = `${reminders.length} totais`;
     }
+  };
+
+  const populateAppointmentFilters = () => {
+    if (adminAppointmentProfessionalFilter) {
+      const currentValue = adminAppointmentProfessionalFilter.value;
+      const profissionais = usuarios.filter((item) => Number(item.role_id) === 2);
+      adminAppointmentProfessionalFilter.innerHTML = '<option value="">Todos</option>' + profissionais.map((item) => `
+        <option value="${item.id}">${item.nome}</option>
+      `).join("");
+      adminAppointmentProfessionalFilter.value = currentValue;
+    }
+
+    if (adminAppointmentRoomFilter) {
+      const currentValue = adminAppointmentRoomFilter.value;
+      adminAppointmentRoomFilter.innerHTML = '<option value="">Todas</option><option value="sem_sala">Sem sala</option>' + spaces.map((item) => `
+        <option value="${item.id}">${item.name || item.nome}</option>
+      `).join("");
+      adminAppointmentRoomFilter.value = currentValue;
+    }
+  };
+
+  const renderAdminAppointments = () => {
+    if (!adminAppointmentsTableBody) return;
+
+    const dateFilter = adminAppointmentDateFilter?.value || "";
+    const statusFilter = adminAppointmentStatusFilter?.value || "";
+    const professionalFilter = adminAppointmentProfessionalFilter?.value || "";
+    const roomFilter = adminAppointmentRoomFilter?.value || "";
+
+    const filtrados = agendamentos.filter((item) => {
+      const dataOk = !dateFilter || formatDateKey(item.data_hora_inicio) === dateFilter;
+      const statusOk = !statusFilter || (item.status || "agendado") === statusFilter;
+      const profissionalOk = !professionalFilter || String(item.usuario_id) === String(professionalFilter);
+      const salaOk = !roomFilter
+        || (roomFilter === "sem_sala" ? !item.espaco_id : String(item.espaco_id) === String(roomFilter));
+      return dataOk && statusOk && profissionalOk && salaOk;
+    });
+
+    adminAppointmentsTableBody.innerHTML = filtrados.length ? filtrados.map((item) => {
+      const cliente = item.cliente_usuario?.nome || item.clientes?.nome || "Cliente";
+      const profissional = item.usuario?.nome || "Profissional";
+      const sala = item.formato === "hibrido" ? "Não necessária" : (item.espacos?.nome || "Sem sala");
+      const status = item.status || "agendado";
+      const statusClass = status === "cancelado" ? "status-disabled" : "status-active";
+
+      return `
+        <tr>
+          <td>${formatDateTime(item.data_hora_inicio)}</td>
+          <td>${cliente}</td>
+          <td>${profissional}</td>
+          <td>${item.formato || "presencial"}</td>
+          <td>${sala}</td>
+          <td><span class="status ${statusClass}">${status}</span></td>
+        </tr>
+      `;
+    }).join("") : `
+      <tr>
+        <td colspan="6">Nenhum agendamento encontrado para os filtros selecionados.</td>
+      </tr>
+    `;
   };
 
   const renderSpaces = () => {
@@ -314,6 +406,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <option value="2" ${u.role_id === 2 ? 'selected' : ''}>Profissional</option>
                     <option value="3" ${u.role_id === 3 ? 'selected' : ''}>Admin</option>
                 </select>
+                <button class="secondary delete-user" data-id="${u.id}" ${String(u.id) === String(user?.id) ? 'disabled title="Você não pode excluir sua própria conta"' : ''}>Excluir</button>
             </td>
         </tr>
     `).join("");
@@ -330,6 +423,26 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await carregarDadosDoBanco();
             } catch(error) {
                 alert("Acesso negado ou erro interno.");
+                await carregarDadosDoBanco();
+            }
+        });
+    });
+
+    usuariosTableBody.querySelectorAll(".delete-user").forEach((button) => {
+        button.addEventListener("click", async () => {
+            const id = button.dataset.id;
+            const usuario = usuarios.find((item) => String(item.id) === String(id));
+            if (!usuario) return;
+
+            const confirmado = confirm(`Deseja realmente excluir o usuário "${usuario.nome}"? Essa ação não pode ser desfeita.`);
+            if (!confirmado) return;
+
+            try {
+                await api.delete(`/usuarios/${id}`);
+                await carregarDadosDoBanco();
+                alert("Usuário excluído com sucesso.");
+            } catch (error) {
+                alert(error.response?.erro || "Não foi possível excluir o usuário.");
                 await carregarDadosDoBanco();
             }
         });
@@ -404,6 +517,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const updateDashboard = () => {
     renderDashboardMetrics();
+    populateAppointmentFilters();
+    renderAdminAppointments();
     renderSpaces();
     renderScheduleBlocks();
     renderReminderList();
@@ -499,6 +614,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   saveConfigBtn.addEventListener("click", saveConfig);
+  [adminAppointmentDateFilter, adminAppointmentStatusFilter, adminAppointmentProfessionalFilter, adminAppointmentRoomFilter]
+    .filter(Boolean)
+    .forEach((filter) => filter.addEventListener("change", renderAdminAppointments));
+  clearAppointmentFiltersBtn?.addEventListener("click", () => {
+    adminAppointmentDateFilter.value = "";
+    adminAppointmentStatusFilter.value = "";
+    adminAppointmentProfessionalFilter.value = "";
+    adminAppointmentRoomFilter.value = "";
+    renderAdminAppointments();
+  });
   mobileNavToggle.addEventListener("click", () => sidebar.classList.toggle("open"));
   document.addEventListener("click", (event) => {
     if (window.innerWidth <= 900 && sidebar.classList.contains("open")) {

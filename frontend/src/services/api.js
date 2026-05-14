@@ -40,6 +40,10 @@ const api = {
         return this.request(path, { method: 'PUT', body: JSON.stringify(body), ...options });
     },
 
+    patch(path, body, options = {}) {
+        return this.request(path, { method: 'PATCH', body: JSON.stringify(body), ...options });
+    },
+
     delete(path, options = {}) {
         return this.request(path, { method: 'DELETE', ...options });
     }

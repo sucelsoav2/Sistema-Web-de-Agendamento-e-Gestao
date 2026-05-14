@@ -10,5 +10,6 @@ router.get('/me', verificarToken, usuariosController.perfil);
 router.put('/me', verificarToken, usuariosController.atualizarPerfil);
 router.get('/profissionais', verificarToken, usuariosController.listarProfissionais);
 router.put('/:id/cargo', verificarToken, usuariosController.atualizarCargo);
+router.delete('/:id', verificarToken, usuariosController.deletar);
 
 module.exports = router;

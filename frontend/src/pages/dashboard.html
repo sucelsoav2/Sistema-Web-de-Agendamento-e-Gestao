@@ -23,6 +23,7 @@
               <li class="active" data-view="dashboard">
                 Painel administrativo
               </li>
+              <li data-view="appointments">Agendamentos</li>
               <li data-view="spaces">Gestão de espaços</li>
               <li data-view="schedule">Bloqueio de horários</li>
               <li data-view="agenda">Personalização da agenda</li>
@@ -65,6 +66,11 @@
               <span class="card-meta">8 novos esta semana</span>
             </div>
             <div class="card">
+              <h3>Profissionais</h3>
+              <p>0 cadastrados</p>
+              <span class="card-meta">Base atualizada</span>
+            </div>
+            <div class="card">
               <h3>Espaços</h3>
               <p>6 disponíveis</p>
               <span class="card-meta">2 reservas em espera</span>
@@ -92,6 +98,61 @@
                 <li>Atualizar disponibilidade de espaços</li>
               </ul>
             </div>
+          </div>
+        </section>
+
+        <section id="viewAppointments" class="view">
+          <div class="view-header">
+            <div>
+              <h2>Todos os agendamentos</h2>
+              <p>Consulte a agenda geral e filtre por data, situação, profissional e sala.</p>
+            </div>
+          </div>
+
+          <div class="content-box" style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: end;">
+              <label>Data
+                <input type="date" id="adminAppointmentDateFilter" />
+              </label>
+              <label>Situação
+                <select id="adminAppointmentStatusFilter">
+                  <option value="">Todas</option>
+                  <option value="agendado">Agendado</option>
+                  <option value="confirmado">Confirmado</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="cancelado">Cancelado</option>
+                  <option value="concluido">Concluído</option>
+                </select>
+              </label>
+              <label>Profissional
+                <select id="adminAppointmentProfessionalFilter">
+                  <option value="">Todos</option>
+                </select>
+              </label>
+              <label>Sala
+                <select id="adminAppointmentRoomFilter">
+                  <option value="">Todas</option>
+                  <option value="sem_sala">Sem sala</option>
+                </select>
+              </label>
+              <button class="secondary" id="clearAppointmentFiltersBtn">Limpar filtros</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Cliente</th>
+                  <th>Profissional</th>
+                  <th>Formato</th>
+                  <th>Sala</th>
+                  <th>Situação</th>
+                </tr>
+              </thead>
+              <tbody id="adminAppointmentsTableBody"></tbody>
+            </table>
           </div>
         </section>
 

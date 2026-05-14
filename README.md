@@ -148,6 +148,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=seu_email@gmail.com
 EMAIL_PASS=sua_senha_app
+EMAIL_FROM=seu_email@gmail.com
 ```
  
 ---

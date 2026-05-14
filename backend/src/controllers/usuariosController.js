@@ -59,6 +59,46 @@ class UsuariosController {
             res.status(500).json({ sucesso: false, erro: error.message });
         }
     }
+
+    async deletar(req, res) {
+        try {
+            const { id } = req.params;
+
+            const { data: requestUser, error: authError } = await supabase
+                .from('usuarios')
+                .select('role_id')
+                .eq('id', req.auth.id)
+                .single();
+
+            if (authError || !requestUser || requestUser.role_id !== 3) {
+                return res.status(403).json({ sucesso: false, erro: 'Acesso negado: Apenas administradores podem excluir usuários.' });
+            }
+
+            if (String(id) === String(req.auth.id)) {
+                return res.status(400).json({ sucesso: false, erro: 'Você não pode excluir sua própria conta de administrador.' });
+            }
+
+            const { error } = await supabase
+                .from('usuarios')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                if (error.code === '23503') {
+                    return res.status(409).json({
+                        sucesso: false,
+                        erro: 'Este usuário possui registros vinculados e não pode ser excluído diretamente.'
+                    });
+                }
+                throw error;
+            }
+
+            res.json({ sucesso: true });
+        } catch (error) {
+            res.status(500).json({ sucesso: false, erro: error.message });
+        }
+    }
+
     async perfil(req, res) {
         try {
             const { data, error } = await supabase.from('usuarios').select('id, nome, email, telefone, data_nascimento, foto_perfil').eq('id', req.auth.id).single();

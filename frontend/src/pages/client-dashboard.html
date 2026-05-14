@@ -139,6 +139,20 @@
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
     }
 
+    .booking-notice {
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      color: #991B1B;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+    }
+
+    .booking-notice.hidden {
+      display: none !important;
+    }
+
     @media (max-width: 900px) {
       .calendar-grid {
         grid-template-columns: 1fr;
@@ -202,6 +216,8 @@
           <ul id="menuList">
             <li class="active" data-view="home">Minha Semana</li>
             <li data-view="agendar">Marcar Reunião</li>
+            <li data-view="agendamentos">Meus agendamentos</li>
+            <li data-view="agenda">Configurar agenda</li>
             <li data-view="perfil">Configurações</li>
           </ul>
         </nav>
@@ -244,6 +260,78 @@
         </div>
       </section>
 
+      <section id="viewAgendamentos" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h2>Meus agendamentos</h2>
+            <p>Veja todas as reuniões que você marcou.</p>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Profissional</th>
+                <th>Formato</th>
+                <th>Sala</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="myAppointmentsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="viewAgenda" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h2>Configurar agenda</h2>
+            <p>Ajuste suas preferências de visualização e notificações.</p>
+          </div>
+          <button class="primary" id="saveClientConfigBtn">Salvar configurações</button>
+        </div>
+
+        <div class="settings-grid">
+          <div class="settings-card theme-card">
+            <h3>Tema</h3>
+            <div class="theme-options">
+              <label class="radio-item">
+                <input type="radio" name="clientTheme" id="clientThemeLight" value="light" />
+                <span>Claro</span>
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="clientTheme" id="clientThemeDark" value="dark" />
+                <span>Escuro</span>
+              </label>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3>Início da semana</h3>
+            <select id="clientWeekStart">
+              <option value="monday">Segunda-feira</option>
+              <option value="sunday">Domingo</option>
+            </select>
+          </div>
+          <div class="settings-card notifications-card" id="clientNotificationsCard">
+            <h3>Notificações</h3>
+            <div class="notification-toggle-row">
+              <label class="switch">
+                <input type="checkbox" id="clientNotificationToggle" />
+                <span class="slider"></span>
+              </label>
+              <span class="notification-state" id="clientNotificationStateLabel">Ativo</span>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3>Agenda padrão</h3>
+            <p>Exibir slot de 30 minutos</p>
+            <label><input type="checkbox" id="clientShowEmptySlots" /> Mostrar horários vazios</label>
+          </div>
+        </div>
+      </section>
+
       <!-- VIEW: AGENDAR -->
       <section id="viewAgendar" class="view hidden">
         <div class="view-header">
@@ -268,7 +356,12 @@
               <option value="4">Quinta-feira</option>
               <option value="5">Sexta-feira</option>
             </select>
+            <input id="quantidadePessoas" type="number" min="1" value="1" placeholder="Pessoas"
+              style="width: 120px; padding: 10px; border-radius: 6px; border: 1px solid #D1D5DB;" />
           </div>
+          <p id="availabilityStatus" class="subtext" style="margin-bottom: 12px;">
+            Selecione um profissional e um dia da semana para ver as datas disponíveis.
+          </p>
 
           <div class="calendar-month-header">
             <button id="btnPrevMonth" class="secondary" style="padding: 8px 16px;">&lt; Anterior</button>
@@ -277,6 +370,37 @@
           </div>
           <div class="calendar-grid" id="monthlyCalendar" style="grid-template-columns: repeat(7, 1fr);">
             <!-- Renderizado via JS -->
+          </div>
+          <div class="content-box" id="bookingPanel" style="margin-top: 20px; display: none;">
+            <div class="view-header">
+              <div>
+                <h2 id="selectedDateTitle">Horários disponíveis</h2>
+                <p>Escolha um horário e o formato da reunião.</p>
+              </div>
+            </div>
+            <div id="bookingNotice" class="booking-notice hidden"></div>
+            <div id="slotList" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;"></div>
+            <div style="display: flex; gap: 14px; align-items: end; flex-wrap: wrap;">
+              <div class="form-group" style="min-width: 180px;">
+                <label>Duração</label>
+                <select id="meetingDuration">
+                  <option value="30">30 minutos</option>
+                  <option value="60">1 hora</option>
+                </select>
+              </div>
+              <div class="form-group" style="min-width: 220px;">
+                <label>Formato</label>
+                <select id="meetingFormat">
+                  <option value="hibrido">Híbrido</option>
+                  <option value="presencial">Presencial</option>
+                </select>
+              </div>
+              <div class="form-group" style="min-width: 240px;">
+                <label>Sala prevista</label>
+                <input id="selectedRoom" type="text" disabled value="Não selecionada" />
+              </div>
+              <button id="confirmBookingBtn" class="primary" disabled>Confirmar agendamento</button>
+            </div>
           </div>
         </div> <!-- agendarFormContainer end -->
       </section>

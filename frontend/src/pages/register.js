@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const senhaInput = document.getElementById("senha");
   const confirmSenhaInput = document.getElementById("confirmSenha");
   const fotoBase64Input = document.getElementById("fotoBase64");
+  const emailValidation = document.getElementById("emailValidation");
+  const telefoneValidation = document.getElementById("telefoneValidation");
+  const birthValidation = document.getElementById("birthValidation");
   
   const themeToggle = document.getElementById("themeToggle");
   const errorElement = document.getElementById("registerError");
@@ -21,9 +24,89 @@ document.addEventListener("DOMContentLoaded", () => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
+  const normalizePhone = (value) => value.replace(/\D/g, "");
+
+  const isBrazilianMobileValid = (value) => {
+    let digits = normalizePhone(value);
+    if (digits.startsWith("55") && digits.length === 13) digits = digits.slice(2);
+    if (digits.length !== 11) return false;
+    const ddd = Number(digits.slice(0, 2));
+    return ddd >= 11 && ddd <= 99 && digits[2] === "9";
+  };
+
+  const calculateAge = (dateValue) => {
+    if (!dateValue || dateValue.length !== 10) return null;
+    const birth = new Date(`${dateValue}T00:00:00`);
+    if (Number.isNaN(birth.getTime())) return null;
+
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age -= 1;
+    return age;
+  };
+
+  const setFieldState = (input, element, message, success = false) => {
+    element.textContent = message;
+    element.classList.toggle("success", Boolean(success && message));
+    input.classList.toggle("invalid-input", Boolean(message && !success));
+    input.classList.toggle("valid-input", Boolean(message && success));
+  };
+
+  const validateEmailField = () => {
+    const email = emailInput.value.trim();
+    if (!email) {
+      setFieldState(emailInput, emailValidation, "");
+      return false;
+    }
+    if (!isEmailValid(email)) {
+      setFieldState(emailInput, emailValidation, "Insira um email válido.");
+      return false;
+    }
+    setFieldState(emailInput, emailValidation, "Email válido.", true);
+    return true;
+  };
+
+  const validatePhoneField = () => {
+    const telefone = telefoneInput.value.trim();
+    if (!telefone) {
+      setFieldState(telefoneInput, telefoneValidation, "");
+      return false;
+    }
+    if (!isBrazilianMobileValid(telefone)) {
+      setFieldState(telefoneInput, telefoneValidation, "Insira um número de celular válido.");
+      return false;
+    }
+    setFieldState(telefoneInput, telefoneValidation, "Celular válido.", true);
+    return true;
+  };
+
+  const validateBirthField = () => {
+    const age = calculateAge(nascimentoInput.value);
+    if (age === null) {
+      setFieldState(nascimentoInput, birthValidation, "");
+      return false;
+    }
+    if (age < 18) {
+      setFieldState(nascimentoInput, birthValidation, "Plataforma valida apenas para maiores de 18 anos!");
+      return false;
+    }
+    if (age > 100) {
+      setFieldState(nascimentoInput, birthValidation, "Data inválida");
+      return false;
+    }
+    setFieldState(nascimentoInput, birthValidation, "Data válida.", true);
+    return true;
+  };
+
   themeToggle.addEventListener("change", (event) => {
     updateTheme(event.target.checked);
   });
+
+  emailInput.addEventListener("input", validateEmailField);
+  telefoneInput.addEventListener("input", validatePhoneField);
+  nascimentoInput.addEventListener("input", validateBirthField);
+  nascimentoInput.addEventListener("change", validateBirthField);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -52,9 +135,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!senha) return alert("Atenção: Falta preencher a Senha!");
     if (!confirmSenha) return alert("Atenção: Falta Confirmar a Senha!");
 
-    if (!isEmailValid(email)) {
-      return alert("Atenção: Informe um email válido.");
-    }
+    if (!validateEmailField()) return alert("Atenção: Informe um email válido.");
+    if (!validatePhoneField()) return alert("Atenção: Informe um número de celular válido.");
+    if (!validateBirthField()) return alert(birthValidation.textContent || "Atenção: Informe uma data de nascimento válida.");
 
     if (senha.length < 6) {
       return alert("Atenção: A senha deve ter pelo menos 6 caracteres.");
@@ -72,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Envia todos os campos para o servidor
       await authService.register({ nome, email, senha, telefone, data_nascimento, foto_perfil });
       
-      alert("Conta criada com sucesso! Você será redirecionado para o login.");
+      alert("Conta criada com sucesso! Confirme seu email antes de fazer login.");
       window.location.href = "./login.html";
     } catch (error) {
       const btn = event.target.querySelector('button');

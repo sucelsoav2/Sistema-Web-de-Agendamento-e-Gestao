@@ -13,6 +13,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (user && user.role_id === 1) {
         window.location.href = "./client-dashboard.html";
+    } else if (user && user.role_id === 2) {
+        window.location.href = "./professional-dashboard.html";
     } else {
         window.location.href = "./dashboard.html";
     }
@@ -61,6 +63,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const user = JSON.parse(localStorage.getItem("user"));
       if (user && user.role_id === 1) {
           window.location.href = "./client-dashboard.html";
+      } else if (user && user.role_id === 2) {
+          window.location.href = "./professional-dashboard.html";
       } else {
           window.location.href = "./dashboard.html";
       }
