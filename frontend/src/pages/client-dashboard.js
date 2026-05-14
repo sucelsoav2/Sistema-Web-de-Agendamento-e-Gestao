@@ -54,6 +54,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             updateProfileUI();
             loadAgendaSettings();
+            loadGoogleCalendarStatus();
             populateProfissionaisDropdown();
             renderWeeklyCalendar();
             renderMyAppointments();
@@ -81,6 +82,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const clientNotificationsCard = document.getElementById("clientNotificationsCard");
     const clientShowEmptySlots = document.getElementById("clientShowEmptySlots");
     const saveClientConfigBtn = document.getElementById("saveClientConfigBtn");
+    const clientGoogleCalendarStatus = document.getElementById("clientGoogleCalendarStatus");
+    const connectClientGoogleCalendarBtn = document.getElementById("connectClientGoogleCalendarBtn");
+    const disconnectClientGoogleCalendarBtn = document.getElementById("disconnectClientGoogleCalendarBtn");
 
     const applyTheme = (theme) => {
         document.body.classList.toggle("dark-mode", theme === "dark");
@@ -100,6 +104,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         clientShowEmptySlots.checked = settings.showEmptySlots;
         updateClientNotificationState();
     };
+
+    const loadGoogleCalendarStatus = async () => {
+        try {
+            const res = await api.get("/google-calendar/status");
+            if (res.conectado) {
+                clientGoogleCalendarStatus.textContent = `Conectado: ${res.google_email || "conta Google"}`;
+                connectClientGoogleCalendarBtn.style.display = "none";
+                disconnectClientGoogleCalendarBtn.style.display = "inline-flex";
+            } else {
+                clientGoogleCalendarStatus.textContent = "Não conectado. Agendamentos não serão enviados ao Google Calendar.";
+                connectClientGoogleCalendarBtn.style.display = "inline-flex";
+                disconnectClientGoogleCalendarBtn.style.display = "none";
+            }
+        } catch (error) {
+            clientGoogleCalendarStatus.textContent = "Não foi possível verificar a conexão com Google Calendar.";
+        }
+    };
+
+    const connectGoogleCalendar = async () => {
+        try {
+            const res = await api.get("/google-calendar/auth-url");
+            window.open(res.url, "googleCalendarAuth", "width=520,height=720");
+        } catch (error) {
+            alert(error.response?.erro || "Não foi possível iniciar conexão com Google Calendar.");
+        }
+    };
+
+    const disconnectGoogleCalendar = async () => {
+        if (!confirm("Deseja desconectar sua agenda Google?")) return;
+        await api.delete("/google-calendar/disconnect");
+        await loadGoogleCalendarStatus();
+    };
+
+    connectClientGoogleCalendarBtn.addEventListener("click", connectGoogleCalendar);
+    disconnectClientGoogleCalendarBtn.addEventListener("click", disconnectGoogleCalendar);
+    window.addEventListener("message", (event) => {
+        if (event.data?.type === "GOOGLE_CALENDAR_CONNECTED") loadGoogleCalendarStatus();
+    });
 
     clientNotificationToggle.addEventListener("change", () => {
         updateClientNotificationState();

@@ -1,5 +1,5 @@
 const STORAGE_KEY_TOKEN = 'token';
-const API_URL = 'http://localhost:3000/auth';
+const API_URL = `${window.location.origin}/auth`;
 
 const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

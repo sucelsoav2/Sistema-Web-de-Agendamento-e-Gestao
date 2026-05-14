@@ -142,7 +142,7 @@ APP_URL=http://localhost:3000
 # Google Calendar API
 GOOGLE_CLIENT_ID=seu_client_id
 GOOGLE_CLIENT_SECRET=seu_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:3001/auth/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:3000/google-calendar/callback
  
 # Nodemailer (envio de e-mails)
 EMAIL_HOST=smtp.gmail.com
@@ -151,6 +151,34 @@ EMAIL_USER=seu_email@gmail.com
 EMAIL_PASS=sua_senha_app
 EMAIL_FROM=seu_email@gmail.com
 ```
+
+### Deploy na Vercel
+
+O projeto já inclui `vercel.json` e a função serverless `api/index.js`.
+
+Variáveis que precisam ser cadastradas em **Vercel > Project Settings > Environment Variables**:
+
+```env
+SUPABASE_URL=
+SUPABASE_KEY=
+JWT_SECRET=
+APP_URL=https://seu-projeto.vercel.app
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=https://seu-projeto.vercel.app/google-calendar/callback
+EMAIL_HOST=
+EMAIL_PORT=587
+EMAIL_USER=
+EMAIL_PASS=
+EMAIL_FROM=
+```
+
+Depois do deploy, atualize também:
+
+- Supabase Auth Redirect URLs:
+  - `https://seu-projeto.vercel.app/src/pages/reset-password.html`
+- Google Cloud OAuth Redirect URI:
+  - `https://seu-projeto.vercel.app/google-calendar/callback`
  
 ---
  

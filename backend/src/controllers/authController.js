@@ -42,7 +42,7 @@ const criarSupabaseComSessao = async (accessToken, refreshToken) => {
 class AuthController {
   async registrar(req, res) {
     try {
-      const { nome, email, senha, tipo, telefone, data_nascimento, foto_perfil } = req.body;
+      const { nome, email, senha, role_id, telefone, data_nascimento, foto_perfil } = req.body;
 
       if (!nome || !email || !senha || !telefone || !data_nascimento || !foto_perfil) {
         return res.status(400).json({ sucesso: false, mensagem: "Todos os campos (incluindo foto e telefone) são obrigatórios" });
@@ -101,7 +101,7 @@ class AuthController {
         nome,
         email,
         senha_hash: senhaHash,
-        tipo: tipo || 'profissional',
+        role_id: Number(role_id) || 1,
         telefone,
         data_nascimento,
         foto_perfil
@@ -117,7 +117,7 @@ class AuthController {
       return res.status(201).json({
         sucesso: true,
         mensagem: "Usuário registrado com sucesso. Confirme seu email antes de fazer login.",
-        usuario: { id: data.id, nome, email, tipo: data.tipo, role_id: data.role_id },
+        usuario: { id: data.id, nome, email, role_id: data.role_id },
       });
     } catch (erro) {
       console.error("ERRO CRÍTICO NO REGISTRO:", erro.message);
@@ -182,13 +182,13 @@ class AuthController {
 
       await supabase.auth.signOut().catch(() => null);
 
-      const token = jwt.sign({ id: usuario.id, email: usuario.email, tipo: usuario.tipo }, process.env.JWT_SECRET || 'sua_chave_secreta_aqui', { expiresIn: '24h' });
+      const token = jwt.sign({ id: usuario.id, email: usuario.email, role_id: usuario.role_id }, process.env.JWT_SECRET || 'sua_chave_secreta_aqui', { expiresIn: '24h' });
 
       return res.status(200).json({
         sucesso: true,
         mensagem: "Login realizado com sucesso",
         token: token,
-        usuario: { id: usuario.id, nome: usuario.nome, email, tipo: usuario.tipo, role_id: usuario.role_id },
+        usuario: { id: usuario.id, nome: usuario.nome, email, role_id: usuario.role_id },
       });
     } catch (erro) {
       console.error("Erro ao fazer login:", erro);
@@ -339,7 +339,7 @@ class AuthController {
   async obterPerfil(req, res) {
     try {
       const usuarioToken = req.auth;
-      const { data, error } = await supabase.from('usuarios').select('id, nome, email, telefone, tipo').eq('id', usuarioToken.id).single();
+      const { data, error } = await supabase.from('usuarios').select('id, nome, email, telefone, role_id').eq('id', usuarioToken.id).single();
 
       if (error || !data) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado" });
 

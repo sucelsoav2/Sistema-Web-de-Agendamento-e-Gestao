@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const supabase = require('./src/config/database');
+require('./src/config/database');
 
 const app = express();
 
@@ -23,6 +23,7 @@ const configuracoesRoutes = require('./src/routes/configuracoesRoutes');
 const clientesRoutes = require('./src/routes/clientesRoutes');
 const agendamentosRoutes = require('./src/routes/agendamentosRoutes');
 const usuariosRoutes = require('./src/routes/usuariosRoutes');
+const googleCalendarRoutes = require('./src/routes/googleCalendarRoutes');
 
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
@@ -33,12 +34,18 @@ app.use('/configuracoes', configuracoesRoutes);
 app.use('/clientes', clientesRoutes);
 app.use('/agendamentos', agendamentosRoutes);
 app.use('/usuarios', usuariosRoutes);
+app.use('/google-calendar', googleCalendarRoutes);
 
 // Quando o usuário acessar a raiz (/), envia o arquivo index.html do frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-app.listen(3000, () => {
-    console.log('Servidor rodando na porta 3000');
-});
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Servidor rodando na porta ${PORT}`);
+    });
+}
+
+module.exports = app;

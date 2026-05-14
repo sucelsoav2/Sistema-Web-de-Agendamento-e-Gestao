@@ -1,6 +1,6 @@
 // Comunicação com o backend
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = window.location.origin;
 
 const api = {
   async request(path, options = {}) {

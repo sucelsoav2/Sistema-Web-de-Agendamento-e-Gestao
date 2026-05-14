@@ -36,6 +36,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const professionalNotificationsCard = document.getElementById("professionalNotificationsCard");
   const professionalShowEmptySlots = document.getElementById("professionalShowEmptySlots");
   const saveProfessionalConfigBtn = document.getElementById("saveProfessionalConfigBtn");
+  const professionalGoogleCalendarStatus = document.getElementById("professionalGoogleCalendarStatus");
+  const connectProfessionalGoogleCalendarBtn = document.getElementById("connectProfessionalGoogleCalendarBtn");
+  const disconnectProfessionalGoogleCalendarBtn = document.getElementById("disconnectProfessionalGoogleCalendarBtn");
 
   let agendamentos = [];
   let lembretes = [];
@@ -92,6 +95,44 @@ document.addEventListener("DOMContentLoaded", async () => {
     professionalShowEmptySlots.checked = settings.showEmptySlots;
     updateProfessionalNotificationState();
   };
+
+  const loadGoogleCalendarStatus = async () => {
+    try {
+      const res = await api.get("/google-calendar/status");
+      if (res.conectado) {
+        professionalGoogleCalendarStatus.textContent = `Conectado: ${res.google_email || "conta Google"}`;
+        connectProfessionalGoogleCalendarBtn.style.display = "none";
+        disconnectProfessionalGoogleCalendarBtn.style.display = "inline-flex";
+      } else {
+        professionalGoogleCalendarStatus.textContent = "Não conectado. Agendamentos não serão enviados ao Google Calendar.";
+        connectProfessionalGoogleCalendarBtn.style.display = "inline-flex";
+        disconnectProfessionalGoogleCalendarBtn.style.display = "none";
+      }
+    } catch (error) {
+      professionalGoogleCalendarStatus.textContent = "Não foi possível verificar a conexão com Google Calendar.";
+    }
+  };
+
+  const connectGoogleCalendar = async () => {
+    try {
+      const res = await api.get("/google-calendar/auth-url");
+      window.open(res.url, "googleCalendarAuth", "width=520,height=720");
+    } catch (error) {
+      alert(error.response?.erro || "Não foi possível iniciar conexão com Google Calendar.");
+    }
+  };
+
+  const disconnectGoogleCalendar = async () => {
+    if (!confirm("Deseja desconectar sua agenda Google?")) return;
+    await api.delete("/google-calendar/disconnect");
+    await loadGoogleCalendarStatus();
+  };
+
+  connectProfessionalGoogleCalendarBtn.addEventListener("click", connectGoogleCalendar);
+  disconnectProfessionalGoogleCalendarBtn.addEventListener("click", disconnectGoogleCalendar);
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "GOOGLE_CALENDAR_CONNECTED") loadGoogleCalendarStatus();
+  });
 
   const getClientName = (agendamento) => {
     return agendamento.cliente_usuario?.nome || agendamento.clientes?.nome || "Cliente";
@@ -280,6 +321,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     bloqueios = resBloqueios.bloqueios || [];
     normalizeSettings(resConfig.configuracoes);
     loadAgendaSettings();
+    loadGoogleCalendarStatus();
     renderMetrics();
     renderWeeklyCalendar();
     renderAppointments();

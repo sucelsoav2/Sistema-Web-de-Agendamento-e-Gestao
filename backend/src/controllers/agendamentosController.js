@@ -1,5 +1,6 @@
 const supabase = require('../config/database');
 const { sendEmail } = require('../services/emailService');
+const googleCalendarService = require('../services/googleCalendarService');
 
 const HORARIO_INICIO = '08:00';
 const HORARIO_FIM = '18:00';
@@ -90,10 +91,11 @@ class AgendamentosController {
                     observacoes,
                     formato
                 }])
-                .select()
+                .select('*, usuario:usuario_id(nome, email), espacos(nome, capacidade), cliente_usuario:cliente_usuario_id(nome, email), clientes(nome, email)')
                 .single();
             if (error) throw error;
-            res.json({ sucesso: true, agendamento: data });
+            const googleCalendar = await googleCalendarService.syncAppointment(data);
+            res.json({ sucesso: true, agendamento: data, googleCalendar });
         } catch (error) {
             res.status(500).json({ sucesso: false, erro: error.message });
         }
@@ -370,11 +372,12 @@ class AgendamentosController {
                     observacoes,
                     status: 'agendado'
                 }])
-                .select('*, usuario:usuario_id(nome), espaco:espaco_id(nome, capacidade)')
+                .select('*, usuario:usuario_id(nome, email), espacos(nome, capacidade), cliente_usuario:cliente_usuario_id(nome, email), clientes(nome, email)')
                 .single();
 
             if (error) throw error;
-            res.status(201).json({ sucesso: true, agendamento });
+            const googleCalendar = await googleCalendarService.syncAppointment(agendamento);
+            res.status(201).json({ sucesso: true, agendamento, googleCalendar });
         } catch (error) {
             res.status(500).json({ sucesso: false, erro: error.message });
         }
