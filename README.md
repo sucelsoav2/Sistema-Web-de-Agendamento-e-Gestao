@@ -137,6 +137,7 @@ DB_NAME=agendamento_db
 # Autenticação
 JWT_SECRET=seu_segredo_jwt
 JWT_EXPIRES_IN=7d
+APP_URL=http://localhost:3000
  
 # Google Calendar API
 GOOGLE_CLIENT_ID=seu_client_id

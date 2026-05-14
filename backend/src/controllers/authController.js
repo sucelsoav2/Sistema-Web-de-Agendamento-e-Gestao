@@ -1,4 +1,5 @@
 const supabase = require('../config/database');
+const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -24,6 +25,18 @@ const calcularIdade = (dataNascimento) => {
   const mes = hoje.getMonth() - nascimento.getMonth();
   if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) idade -= 1;
   return idade;
+};
+
+const getAppUrl = () => (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+const criarSupabaseComSessao = async (accessToken, refreshToken) => {
+  const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  const { error } = await client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  });
+  if (error) throw error;
+  return client;
 };
 
 class AuthController {
@@ -71,6 +84,14 @@ class AuthController {
 
       if (authError) {
         console.error("ERRO SUPABASE AUTH NO REGISTRO:", authError);
+        const authMessage = String(authError.message || '');
+        if (/rate limit/i.test(authMessage)) {
+          return res.status(429).json({
+            sucesso: false,
+            codigo: 'EMAIL_RATE_LIMIT',
+            mensagem: "O Supabase bloqueou temporariamente o envio de emails de confirmação por excesso de tentativas. Aguarde alguns minutos antes de criar outra conta ou ajuste o SMTP/rate limit no Supabase."
+          });
+        }
         return res.status(400).json({ sucesso: false, mensagem: authError.message || "Email inválido no autenticador do Supabase" });
       }
 
@@ -118,6 +139,10 @@ class AuthController {
         return res.status(401).json({ sucesso: false, mensagem: 'Usuário ou senha inválidos' });
       }
 
+      if (usuario.ativo === false) {
+        return res.status(403).json({ sucesso: false, mensagem: 'Esta conta foi desativada. Entre em contato com o administrador.' });
+      }
+
       const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
 
       if (!senhaValida) {
@@ -135,14 +160,24 @@ class AuthController {
           || mensagemSupabase.includes('not confirmed')
           || mensagemSupabase.includes('confirm');
 
+        console.warn("LOGIN BLOQUEADO PELO SUPABASE AUTH:", {
+          email,
+          erro: authError.message
+        });
+
         if (emailNaoConfirmado) {
           return res.status(403).json({
             sucesso: false,
-            mensagem: 'Confirme seu email pelo Supabase antes de fazer login.'
+            codigo: 'EMAIL_NAO_CONFIRMADO',
+            mensagem: 'O Supabase ainda não reconheceu a confirmação deste email. Verifique se você clicou no link mais recente enviado para seu email ou solicite um novo link de confirmação.'
           });
         }
 
-        return res.status(401).json({ sucesso: false, mensagem: 'Usuário ou senha inválidos' });
+        return res.status(403).json({
+          sucesso: false,
+          codigo: 'CONTA_NAO_AUTENTICADA_SUPABASE',
+          mensagem: 'Esta conta ainda não foi autenticada pelo Supabase. Confirme o email enviado no cadastro antes de fazer login.'
+        });
       }
 
       await supabase.auth.signOut().catch(() => null);
@@ -157,6 +192,146 @@ class AuthController {
       });
     } catch (erro) {
       console.error("Erro ao fazer login:", erro);
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
+    }
+  }
+
+  async reenviarConfirmacao(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ sucesso: false, mensagem: "Email é obrigatório" });
+      }
+
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ sucesso: false, mensagem: "Insira um email válido." });
+      }
+
+      const { data: usuario } = await supabase.from('usuarios')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (!usuario) {
+        return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado" });
+      }
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email
+      });
+
+      if (error) {
+        console.error("ERRO AO REENVIAR CONFIRMAÇÃO:", error);
+        return res.status(400).json({ sucesso: false, mensagem: error.message || "Não foi possível reenviar a confirmação." });
+      }
+
+      return res.json({
+        sucesso: true,
+        mensagem: "Enviamos um novo link de confirmação para seu email."
+      });
+    } catch (erro) {
+      console.error("Erro ao reenviar confirmação:", erro);
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
+    }
+  }
+
+  async solicitarRedefinicaoSenha(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ sucesso: false, mensagem: "Email é obrigatório" });
+      }
+
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ sucesso: false, mensagem: "Insira um email válido." });
+      }
+
+      const { data: usuario } = await supabase.from('usuarios')
+        .select('id, ativo')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (!usuario || usuario.ativo === false) {
+        console.warn("REDEFINIÇÃO DE SENHA IGNORADA: usuário inexistente ou inativo.", { email });
+        return res.json({
+          sucesso: true,
+          mensagem: "Se este email estiver cadastrado e ativo, enviaremos um link de redefinição de senha."
+        });
+      }
+
+      const redirectTo = `${getAppUrl()}/src/pages/reset-password.html`;
+      let { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+      if (error && /redirect|uri|url|not allowed/i.test(String(error.message || ''))) {
+        console.warn("REDEFINIÇÃO COM REDIRECT RECUSADA, TENTANDO SEM REDIRECT:", {
+          redirectTo,
+          erro: error.message
+        });
+        const fallback = await supabase.auth.resetPasswordForEmail(email);
+        error = fallback.error;
+      }
+
+      if (error) {
+        console.error("ERRO AO SOLICITAR REDEFINIÇÃO:", error);
+        return res.json({
+          sucesso: false,
+          avisoInterno: 'SUPABASE_RESET_RECUSADO',
+          mensagem: `O Supabase recusou o envio do email de recuperação: ${error.message || 'erro desconhecido'}. Verifique as configurações de recuperação de senha no Supabase.`
+        });
+      }
+
+      return res.json({
+        sucesso: true,
+        mensagem: "Enviamos um link de redefinição de senha para seu email."
+      });
+    } catch (erro) {
+      console.error("Erro ao solicitar redefinição de senha:", erro);
+      return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
+    }
+  }
+
+  async redefinirSenha(req, res) {
+    try {
+      const { access_token, refresh_token, nova_senha } = req.body;
+
+      if (!access_token || !refresh_token || !nova_senha) {
+        return res.status(400).json({ sucesso: false, mensagem: "Token de recuperação e nova senha são obrigatórios." });
+      }
+
+      if (String(nova_senha).length < 6) {
+        return res.status(400).json({ sucesso: false, mensagem: "A senha deve ter pelo menos 6 caracteres." });
+      }
+
+      const recoveryClient = await criarSupabaseComSessao(access_token, refresh_token);
+      const { data: authData, error: userError } = await recoveryClient.auth.getUser();
+      if (userError || !authData?.user?.email) {
+        return res.status(401).json({ sucesso: false, mensagem: "Link de redefinição inválido ou expirado." });
+      }
+
+      const { error: updateAuthError } = await recoveryClient.auth.updateUser({
+        password: nova_senha
+      });
+      if (updateAuthError) {
+        return res.status(400).json({ sucesso: false, mensagem: updateAuthError.message || "Não foi possível atualizar a senha." });
+      }
+
+      const senhaHash = await bcrypt.hash(nova_senha, 10);
+      const { error: updateLocalError } = await supabase.from('usuarios')
+        .update({ senha_hash: senhaHash })
+        .eq('email', authData.user.email);
+      if (updateLocalError) throw updateLocalError;
+
+      await recoveryClient.auth.signOut().catch(() => null);
+
+      return res.json({
+        sucesso: true,
+        mensagem: "Senha redefinida com sucesso. Faça login com sua nova senha."
+      });
+    } catch (erro) {
+      console.error("Erro ao redefinir senha:", erro);
       return res.status(500).json({ sucesso: false, mensagem: "Erro interno do servidor" });
     }
   }

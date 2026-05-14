@@ -155,7 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Envia todos os campos para o servidor
       await authService.register({ nome, email, senha, telefone, data_nascimento, foto_perfil });
       
-      alert("Conta criada com sucesso! Confirme seu email antes de fazer login.");
+      sessionStorage.setItem(
+        "loginMessage",
+        "Enviamos um email de confirmação para o email cadastrado, por favor, confirme para realizar seu login!"
+      );
       window.location.href = "./login.html";
     } catch (error) {
       const btn = event.target.querySelector('button');

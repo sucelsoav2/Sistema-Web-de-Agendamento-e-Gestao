@@ -17,6 +17,13 @@ router.post("/registrar", authController.registrar);
 // autenticar usuário
 router.post("/login", authController.login);
 
+// reenviar confirmação de email
+router.post("/reenviar-confirmacao", authController.reenviarConfirmacao);
+
+// recuperação de senha
+router.post("/esqueci-senha", authController.solicitarRedefinicaoSenha);
+router.post("/redefinir-senha", authController.redefinirSenha);
+
 // rotas protegidas 
 router.get("/perfil", verificarToken, authController.obterPerfil);
 

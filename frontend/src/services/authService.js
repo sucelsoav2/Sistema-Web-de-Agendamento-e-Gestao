@@ -60,10 +60,54 @@ const authService = {
         });
 
         const data = await response.json();
-        if (!response.ok || !data.sucesso) throw new Error(data.mensagem || 'Credenciais inválidas.');
+        if (!response.ok || !data.sucesso) {
+            const error = new Error(data.mensagem || 'Credenciais inválidas.');
+            error.codigo = data.codigo;
+            throw error;
+        }
 
         this.saveToken(data.token);
         localStorage.setItem('user', JSON.stringify(data.usuario));
+        return data;
+    },
+
+    async resendConfirmation(email) {
+        if (!email || !validateEmail(email)) throw new Error('Informe um email válido.');
+
+        const response = await fetch(`${API_URL}/reenviar-confirmacao`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.sucesso) throw new Error(data.mensagem || 'Não foi possível reenviar a confirmação.');
+        return data;
+    },
+
+    async requestPasswordReset(email) {
+        if (!email || !validateEmail(email)) throw new Error('Informe um email válido.');
+
+        const response = await fetch(`${API_URL}/esqueci-senha`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.sucesso) throw new Error(data.mensagem || 'Não foi possível enviar a recuperação de senha.');
+        return data;
+    },
+
+    async resetPassword({ access_token, refresh_token, nova_senha }) {
+        const response = await fetch(`${API_URL}/redefinir-senha`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token, refresh_token, nova_senha })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.sucesso) throw new Error(data.mensagem || 'Não foi possível redefinir a senha.');
         return data;
     },
 

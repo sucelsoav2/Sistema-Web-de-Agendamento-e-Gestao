@@ -78,24 +78,49 @@ class UsuariosController {
                 return res.status(400).json({ sucesso: false, erro: 'Você não pode excluir sua própria conta de administrador.' });
             }
 
+            const { data: usuarioAlvo, error: findError } = await supabase
+                .from('usuarios')
+                .select('id')
+                .eq('id', id)
+                .maybeSingle();
+            if (findError) throw findError;
+
+            if (!usuarioAlvo) {
+                return res.status(404).json({ sucesso: false, erro: 'Usuário não encontrado.' });
+            }
+
+            await this.removerVinculosDoUsuario(id);
+
             const { error } = await supabase
                 .from('usuarios')
                 .delete()
                 .eq('id', id);
 
-            if (error) {
-                if (error.code === '23503') {
-                    return res.status(409).json({
-                        sucesso: false,
-                        erro: 'Este usuário possui registros vinculados e não pode ser excluído diretamente.'
-                    });
-                }
-                throw error;
-            }
+            if (error) throw error;
 
-            res.json({ sucesso: true });
+            res.json({
+                sucesso: true,
+                mensagem: 'Usuário excluído permanentemente da tabela de usuários.'
+            });
         } catch (error) {
             res.status(500).json({ sucesso: false, erro: error.message });
+        }
+    }
+
+    async removerVinculosDoUsuario(id) {
+        const operations = [
+            supabase.from('configuracoes_agenda').delete().eq('usuario_id', id),
+            supabase.from('lembretes').delete().eq('usuario_id', id),
+            supabase.from('bloqueios_horario').delete().eq('usuario_id', id),
+            supabase.from('agendamentos').delete().eq('cliente_usuario_id', id),
+            supabase.from('agendamentos').delete().eq('usuario_id', id)
+        ];
+
+        for (const operation of operations) {
+            const { error } = await operation;
+            if (error && error.code !== '42P01' && error.code !== '42703') {
+                throw error;
+            }
         }
     }
 

@@ -438,9 +438,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (!confirmado) return;
 
             try {
-                await api.delete(`/usuarios/${id}`);
+                const res = await api.delete(`/usuarios/${id}`);
                 await carregarDadosDoBanco();
-                alert("Usuário excluído com sucesso.");
+                alert(res.mensagem || "Usuário excluído com sucesso.");
             } catch (error) {
                 alert(error.response?.erro || "Não foi possível excluir o usuário.");
                 await carregarDadosDoBanco();
