@@ -225,7 +225,7 @@ Crie um arquivo `.env` na raiz do projeto baseado no `.env.example`:
 
 ```env
 # Supabase
-SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_URL=seu_supabase_url
 SUPABASE_KEY=sua_anon_key
 SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
 
@@ -233,16 +233,16 @@ SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
 JWT_SECRET=seu_segredo_jwt_muito_seguro
 
 # URL base da aplicação
-APP_URL=http://localhost:3000
+APP_URL=seu_app_url
 
 # Google Calendar OAuth
 GOOGLE_CLIENT_ID=seu_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=seu_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/google-calendar/callback
+GOOGLE_REDIRECT_URI=seu_google_redirect_uri
 
 # Nodemailer (envio de e-mails)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
+EMAIL_HOST=email_host
+EMAIL_PORT=email_port
 EMAIL_USER=seu_email@gmail.com
 EMAIL_PASS=sua_senha_de_app
 EMAIL_FROM=seu_email@gmail.com
@@ -275,10 +275,10 @@ SUPABASE_URL
 SUPABASE_KEY
 SUPABASE_SERVICE_ROLE_KEY
 JWT_SECRET
-APP_URL=https://sistema-web-de-agendamento-e-gestao.vercel.app
+APP_URL
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
-GOOGLE_REDIRECT_URI=https://sistema-web-de-agendamento-e-gestao.vercel.app/google-calendar/callback
+GOOGLE_REDIRECT_URI
 EMAIL_HOST
 EMAIL_PORT
 EMAIL_USER
@@ -289,10 +289,8 @@ EMAIL_FROM
 ### Após o deploy, configure também
 
 - **Supabase → Authentication → URL Configuration → Redirect URLs:**  
-  `https://sistema-web-de-agendamento-e-gestao.vercel.app/src/pages/reset-password.html`
 
 - **Google Cloud Console → OAuth → URIs de redirecionamento autorizados:**  
-  `https://sistema-web-de-agendamento-e-gestao.vercel.app/google-calendar/callback`
 
 ---
 
