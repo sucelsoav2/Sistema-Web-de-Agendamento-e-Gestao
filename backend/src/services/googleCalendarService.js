@@ -11,6 +11,12 @@ const hasGoogleConfig = () => Boolean(
     && process.env.GOOGLE_REDIRECT_URI
 );
 
+const getMissingGoogleConfig = () => [
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
+    'GOOGLE_REDIRECT_URI'
+].filter((key) => !process.env[key]);
+
 const createOAuthClient = () => new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
@@ -18,8 +24,9 @@ const createOAuthClient = () => new google.auth.OAuth2(
 );
 
 const ensureConfigured = () => {
-    if (!hasGoogleConfig()) {
-        throw new Error('Google Calendar não configurado. Defina GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REDIRECT_URI.');
+    const missing = getMissingGoogleConfig();
+    if (missing.length) {
+        throw new Error(`Google Calendar não configurado. Variáveis ausentes na Vercel: ${missing.join(', ')}.`);
     }
 };
 
