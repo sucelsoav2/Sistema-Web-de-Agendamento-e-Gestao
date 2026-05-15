@@ -27,8 +27,18 @@ const calcularIdade = (dataNascimento) => {
   return idade;
 };
 
-const getAppUrl = () => (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
-const getLoginRedirectUrl = () => `${getAppUrl()}/src/pages/login.html`;
+const getAppUrl = (req) => {
+  const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+  const requestOrigin = req?.headers?.origin || '';
+  const forwardedProto = String(req?.headers?.['x-forwarded-proto'] || '').split(',')[0];
+  const requestHost = req?.headers?.host
+    ? `${forwardedProto || req.protocol || 'https'}://${req.headers.host}`
+    : '';
+
+  return (process.env.APP_URL || vercelUrl || requestOrigin || requestHost || 'http://localhost:3000').replace(/\/$/, '');
+};
+
+const getLoginRedirectUrl = (req) => `${getAppUrl(req)}/src/pages/login.html`;
 
 const emailFoiConfirmado = (authUser) => Boolean(
   authUser?.email_confirmed_at
@@ -87,7 +97,7 @@ class AuthController {
         email,
         password: senha,
         options: {
-          emailRedirectTo: getLoginRedirectUrl()
+          emailRedirectTo: getLoginRedirectUrl(req)
         }
       });
 
@@ -245,7 +255,7 @@ class AuthController {
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: getLoginRedirectUrl()
+          emailRedirectTo: getLoginRedirectUrl(req)
         }
       });
 
@@ -289,7 +299,7 @@ class AuthController {
         });
       }
 
-      const redirectTo = `${getAppUrl()}/src/pages/reset-password.html`;
+      const redirectTo = `${getAppUrl(req)}/src/pages/reset-password.html`;
       let { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
       if (error && /redirect|uri|url|not allowed/i.test(String(error.message || ''))) {
