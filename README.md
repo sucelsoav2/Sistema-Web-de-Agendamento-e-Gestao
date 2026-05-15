@@ -1,267 +1,308 @@
 # Sistema Web de Agendamento e Gestão
- 
+
 > Projeto acadêmico desenvolvido para a disciplina de **Desenvolvimento FullStack** — Universidade SENAI CIMATEC  
-> Professor: Celso Barreto
-> Integrantes do Grupo: Leonardo Magalhães, Marcos Menezes, Rafael Guerra, Rian Albert, Vinicius Fernandes
- 
+> Professor: Celso Barreto  
+> **Integrantes:** Leonardo Magalhães · Marcos Menezes · Rafael Guerra · Rian Albert · Vinicius Fernandes
+
+**Deploy:** [sistema-web-de-agendamento-e-gestao.vercel.app](https://sistema-web-de-agendamento-e-gestao.vercel.app)  
+**Repositório:** [github.com/MarcosMenezes30/Sistema-Web-de-Agendamento-e-Gestao](https://github.com/MarcosMenezes30/Sistema-Web-de-Agendamento-e-Gestao)
+
 ---
- 
+
 ## Sobre o Projeto
- 
-O **Sistema Web de Agendamento e Gestão** é uma aplicação moderna e responsiva voltada para organizações e profissionais que precisam gerenciar horários, espaços e compromissos de forma prática e eficiente.
- 
-O sistema centraliza informações de agendamentos, reduz erros operacionais, melhora a comunicação com clientes e aumenta a produtividade das equipes.
- 
+
+O **Sistema Web de Agendamento e Gestão** é uma aplicação web moderna e responsiva voltada para organizações e profissionais que precisam gerenciar horários, espaços e compromissos de forma prática e eficiente.
+
+O sistema centraliza informações de agendamentos, reduz erros operacionais, melhora a comunicação com clientes e aumenta a produtividade das equipes. O frontend é servido como arquivos estáticos e se comunica com um backend Node.js via API REST — ambos hospedados na **Vercel** (função serverless + static files).
+
 ---
- 
+
 ## Funcionalidades
- 
+
 | Funcionalidade | Descrição |
 |---|---|
 | Agendamento Online | O cliente realiza marcações diretamente pelo sistema, visualizando horários disponíveis |
-| Lembretes Automáticos | Envio de notificações por e-mail para clientes sobre agendamentos futuros |
-| Agenda por Status e Cores | Visualização da agenda com cores diferenciadas por status (Agendado, Confirmado, Pendente, Cancelado, Concluído) |
+| Lembretes Automáticos | Envio de notificações por e-mail via Nodemailer sobre agendamentos futuros |
+| Agenda por Status e Cores | Visualização com cores diferenciadas por status (Agendado, Confirmado, Pendente, Cancelado, Concluído) |
 | Bloqueio de Horários | Possibilidade de bloquear períodos indisponíveis no calendário |
-| Gestão de Espaços | Controle e associação de salas/consultórios/ambientes a agendamentos |
-| Integração Google Agenda | Sincronização bidirecional de compromissos com o Google Calendar |
-| Personalização da Agenda | Configuração de horários de funcionamento, intervalos, visualização e preferências visuais |
- 
----
+| Gestão de Espaços | Controle e associação de salas/ambientes a agendamentos, prevenindo conflitos |
+| Integração Google Agenda | Sincronização com o Google Calendar via Google APIs |
+| Personalização da Agenda | Configuração de horários de funcionamento, intervalos e preferências visuais |
 
+---
 
 ## Tecnologias Utilizadas
 
 ### Frontend
-- **JavaScript** (Vanilla JS / React)
-- HTML5 + CSS3
+- **HTML5 + CSS3 + JavaScript** (Vanilla JS)
 - Interface responsiva (mobile-first)
+- Servido como arquivos estáticos via Vercel
+
 ### Backend
-- **Node.js** com Express.js
-- API RESTful
-- Autenticação JWT
-- Integração com Google Calendar API
+- **Node.js** com **Express.js v5**
+- API RESTful com rotas separadas por domínio
+- Autenticação via **JWT** (`jsonwebtoken` + `express-jwt`)
+- Hash de senhas com **bcrypt**
+- Envio de e-mails com **Nodemailer**
+- Integração com **Google Calendar** via `googleapis`
+
 ### Banco de Dados
-- **MySQL** ou **PostgreSQL** (via Supabase)
+- **Supabase** (PostgreSQL gerenciado em nuvem)  
+  Acesso via `@supabase/supabase-js`
+
+### Infraestrutura / Deploy
+- **Vercel** — backend como função serverless (`api/index.js`) + frontend como static files
+- Configuração de rotas em `vercel.json`
+
 ### Controle de Versão
 - Git + GitHub
+
 ---
- 
-## Estrutura do Projeto
- 
+
+## Estrutura Real do Projeto
+
 ```
-sistema-agendamento/
+Sistema-Web-de-Agendamento-e-Gestao/
 │
-├── frontend/
-│   ├── pages/          # Páginas da aplicação
-│   ├── components/     # Componentes reutilizáveis
-│   ├── services/       # Chamadas à API
-│   ├── styles/         # Arquivos CSS/estilização
-│   └── assets/         # Imagens, ícones e fontes
+├── api/
+│   └── index.js              # Função serverless para o deploy na Vercel
 │
 ├── backend/
-│   ├── controllers/    # Lógica de controle das rotas
-│   ├── routes/         # Definição dos endpoints
-│   ├── services/       # Regras de negócio
-│   ├── models/         # Modelos de dados
-│   ├── middlewares/    # Autenticação, validação etc.
-│   └── config/         # Configurações gerais
+│   ├── sql/                  # Scripts SQL do banco de dados
+│   └── src/
+│       ├── config/           # Configuração do banco (Supabase) e variáveis
+│       ├── controllers/      # Lógica de controle das rotas
+│       ├── middlewares/      # Autenticação JWT e validações
+│       ├── models/           # Modelos de dados
+│       ├── routes/           # Definição dos endpoints por domínio
+│       ├── services/         # Regras de negócio
+│       ├── utils/            # Funções utilitárias
+│       └── app.js            # Configuração do servidor Express
 │
-├── database/
-│   └── schema.sql      # Script de criação do banco de dados
+├── frontend/                 # Interface do usuário (HTML, CSS, JS)
 │
-├── docs/
-│   ├── manual-usuario.docx
-│   └── documentacao-tecnica.md
-│
+├── .env.example              # Modelo das variáveis de ambiente
+├── .gitignore
+├── app.js                    # Entry point principal
+├── package.json
+├── package-lock.json
+├── vercel.json               # Configuração do deploy na Vercel
 └── README.md
 ```
- 
+
 ---
- 
-## Modelo de Banco de Dados
- 
-O banco de dados segue modelagem relacional com as seguintes tabelas principais:
- 
+
+## Rotas da API
+
+As rotas seguem o padrão definido no `app.js` e são roteadas pela Vercel via `vercel.json`:
+
+| Prefixo | Arquivo de rotas | Responsabilidade |
+|---|---|---|
+| `/auth` | `authRoutes.js` | Login, logout, registro, reset de senha |
+| `/dashboard` | `dashboardRoutes.js` | Dados resumidos para o painel principal |
+| `/agendamentos` | `agendamentosRoutes.js` | CRUD de agendamentos |
+| `/clientes` | `clientesRoutes.js` | CRUD de clientes |
+| `/espacos` | `espacosRoutes.js` | CRUD de espaços/salas |
+| `/bloqueios` | `bloqueiosRoutes.js` | Bloqueio de horários indisponíveis |
+| `/lembretes` | `lembretesRoutes.js` | Configuração e disparo de lembretes por e-mail |
+| `/configuracoes` | `configuracoesRoutes.js` | Preferências da agenda por usuário |
+| `/usuarios` | `usuariosRoutes.js` | Gerenciamento de usuários |
+| `/google-calendar` | `googleCalendarRoutes.js` | Integração e callback OAuth com Google Calendar |
+
+### Exemplos de endpoints
+
+**Autenticação**
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/auth/login` | Login do usuário |
+| POST | `/auth/register` | Cadastro de novo usuário |
+| POST | `/auth/logout` | Logout |
+
+**Agendamentos**
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/agendamentos` | Listar todos os agendamentos |
+| GET | `/agendamentos/:id` | Buscar agendamento por ID |
+| POST | `/agendamentos` | Criar novo agendamento |
+| PUT | `/agendamentos/:id` | Atualizar agendamento |
+| DELETE | `/agendamentos/:id` | Cancelar/remover agendamento |
+
+**Espaços**
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/espacos` | Listar espaços disponíveis |
+| POST | `/espacos` | Cadastrar novo espaço |
+| PUT | `/espacos/:id` | Atualizar espaço |
+| DELETE | `/espacos/:id` | Remover espaço |
+
+**Google Calendar**
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/google-calendar/auth` | Inicia o fluxo OAuth com o Google |
+| GET | `/google-calendar/callback` | Callback após autorização do Google |
+| POST | `/google-calendar/sync` | Sincroniza agendamentos com o Google Calendar |
+
+---
+
+## Banco de Dados (Supabase / PostgreSQL)
+
+O banco é hospedado no **Supabase** e modelado de forma relacional. As principais tabelas são:
+
 - `usuarios` — Administradores e profissionais do sistema
 - `clientes` — Pessoas que realizam agendamentos
 - `agendamentos` — Registros de marcações com data, horário e status
-- `espacos` — Salas, consultórios ou ambientes disponíveis
-- `status` — Tabela de domínio de status possíveis
-- `lembretes` — Configurações e registros de notificações enviadas
+- `espacos` — Salas, consultórios ou ambientes disponíveis para atendimento
+- `bloqueios` — Períodos bloqueados na agenda
+- `lembretes` — Configurações e histórico de notificações enviadas
 - `configuracoes_agenda` — Preferências por usuário/organização
+
+> Os scripts SQL de criação do banco estão em `backend/sql/`.
+
 ---
- 
-## Como Executar o Projeto
- 
+
+## Como Executar Localmente
+
 ### Pré-requisitos
-- Node.js v18+
-- MySQL ou conta no Supabase (PostgreSQL)
+- **Node.js v18+**
+- **npm**
+- Conta no **Supabase** com um projeto criado
+- Conta no **Google Cloud** com OAuth configurado (para integração com Google Calendar)
 - Git
+
 ### Passo a passo
- 
+
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/sucelsoav2/Sistema-Web-de-Agendamento-e-Gestao.git
+git clone https://github.com/MarcosMenezes30/Sistema-Web-de-Agendamento-e-Gestao.git
 cd Sistema-Web-de-Agendamento-e-Gestao
- 
-# 2. Instale as dependências do backend
-cd backend
+
+# 2. Instale as dependências
 npm install
- 
+
 # 3. Configure as variáveis de ambiente
 cp .env.example .env
-# Edite o arquivo .env com suas credenciais de banco e API
- 
-# 4. Execute as migrations do banco de dados
-npm run migrate
- 
-# 5. Inicie o servidor backend
+# Edite o arquivo .env com suas credenciais (veja a seção abaixo)
+
+# 4. Execute o servidor em modo de desenvolvimento
 npm run dev
- 
-# 6. Em outro terminal, inicie o frontend
-cd ../frontend
-npm install
-npm start
 ```
- 
-### Variáveis de Ambiente (`.env`)
- 
+
+O servidor iniciará na porta `3000` por padrão. Acesse: [http://localhost:3000](http://localhost:3000)
+
+> O frontend é servido automaticamente pelo Express a partir da pasta `frontend/`.
+
+### Scripts disponíveis
+
+| Comando | Descrição |
+|---|---|
+| `npm run dev` | Inicia o servidor com nodemon (hot reload) |
+| `npm start` | Inicia o servidor em modo produção |
+| `npm run vercel-build` | Etapa de build para a Vercel (sem ação necessária) |
+
+---
+
+## Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto baseado no `.env.example`:
+
 ```env
-# Banco de dados
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=sua_senha
-DB_NAME=agendamento_db
- 
-# Autenticação
-JWT_SECRET=seu_segredo_jwt
-JWT_EXPIRES_IN=7d
+# Supabase
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_KEY=sua_anon_key
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
+
+# Autenticação JWT
+JWT_SECRET=seu_segredo_jwt_muito_seguro
+
+# URL base da aplicação
 APP_URL=http://localhost:3000
- 
-# Google Calendar API
-GOOGLE_CLIENT_ID=seu_client_id
+
+# Google Calendar OAuth
+GOOGLE_CLIENT_ID=seu_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=seu_client_secret
 GOOGLE_REDIRECT_URI=http://localhost:3000/google-calendar/callback
- 
+
 # Nodemailer (envio de e-mails)
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=seu_email@gmail.com
-EMAIL_PASS=sua_senha_app
+EMAIL_PASS=sua_senha_de_app
 EMAIL_FROM=seu_email@gmail.com
 ```
 
-### Deploy na Vercel
+---
 
-O projeto já inclui `vercel.json` e a função serverless `api/index.js`.
+## Deploy na Vercel
 
-Variáveis que precisam ser cadastradas em **Vercel > Project Settings > Environment Variables**:
+O projeto já está configurado para deploy na Vercel via `vercel.json`.
 
-```env
-SUPABASE_URL=
-SUPABASE_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-JWT_SECRET=
-APP_URL=https://seu-projeto.vercel.app
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=https://seu-projeto.vercel.app/google-calendar/callback
-EMAIL_HOST=
-EMAIL_PORT=587
-EMAIL_USER=
-EMAIL_PASS=
-EMAIL_FROM=
+### Arquitetura do deploy
+
+```
+Vercel
+├── api/index.js        → Função serverless (backend Node.js/Express)
+└── frontend/**         → Arquivos estáticos (HTML, CSS, JS)
 ```
 
-Depois do deploy, atualize também:
+### Roteamento (vercel.json)
 
-- Supabase Auth Redirect URLs:
-  - `https://seu-projeto.vercel.app/src/pages/reset-password.html`
-- Google Cloud OAuth Redirect URI:
-  - `https://seu-projeto.vercel.app/google-calendar/callback`
- 
+As rotas de API (`/auth`, `/agendamentos`, `/espacos`, etc.) são direcionadas para a função serverless. As demais requisições servem os arquivos estáticos do frontend. A rota raiz `/` serve o `frontend/index.html`.
+
+### Variáveis de ambiente na Vercel
+
+Configure em **Vercel > Project Settings > Environment Variables**:
+
+```
+SUPABASE_URL
+SUPABASE_KEY
+SUPABASE_SERVICE_ROLE_KEY
+JWT_SECRET
+APP_URL=https://sistema-web-de-agendamento-e-gestao.vercel.app
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=https://sistema-web-de-agendamento-e-gestao.vercel.app/google-calendar/callback
+EMAIL_HOST
+EMAIL_PORT
+EMAIL_USER
+EMAIL_PASS
+EMAIL_FROM
+```
+
+### Após o deploy, configure também
+
+- **Supabase → Authentication → URL Configuration → Redirect URLs:**  
+  `https://sistema-web-de-agendamento-e-gestao.vercel.app/src/pages/reset-password.html`
+
+- **Google Cloud Console → OAuth → URIs de redirecionamento autorizados:**  
+  `https://sistema-web-de-agendamento-e-gestao.vercel.app/google-calendar/callback`
+
 ---
- 
-## Endpoints da API
- 
-### Autenticação
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/api/auth/login` | Login do usuário |
-| POST | `/api/auth/logout` | Logout |
-| POST | `/api/auth/register` | Cadastro de novo usuário |
- 
-### Agendamentos
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/api/agendamentos` | Listar todos os agendamentos |
-| GET | `/api/agendamentos/:id` | Buscar agendamento por ID |
-| POST | `/api/agendamentos` | Criar novo agendamento |
-| PUT | `/api/agendamentos/:id` | Atualizar agendamento |
-| DELETE | `/api/agendamentos/:id` | Cancelar agendamento |
- 
-### Espaços
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/api/espacos` | Listar todos os espaços |
-| POST | `/api/espacos` | Cadastrar novo espaço |
-| PUT | `/api/espacos/:id` | Atualizar espaço |
-| DELETE | `/api/espacos/:id` | Remover espaço |
- 
-### Clientes
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/api/clientes` | Listar clientes |
-| POST | `/api/clientes` | Cadastrar cliente |
-| PUT | `/api/clientes/:id` | Atualizar cliente |
- 
-### Lembretes
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/api/lembretes/enviar` | Disparar lembrete manual |
-| GET | `/api/lembretes/configuracoes` | Obter configurações de lembrete |
- 
----
- 
+
 ## Identidade Visual
- 
-| Elemento | Valor |
-|----------|-------|
+
+| Elemento | Cor / Valor |
+|---|---|
 | Cor principal | `#2563EB` (Azul) |
-| Cor de sucesso | `#10B981` (Verde) |
-| Cor de alerta | `#F59E0B` (Amarelo) |
-| Cor de erro | `#EF4444` (Vermelho) |
+| Cor de sucesso/confirmado | `#10B981` (Verde) |
+| Cor de alerta/pendente | `#F59E0B` (Amarelo) |
+| Cor de erro/cancelado | `#EF4444` (Vermelho) |
 | Fundo neutro | `#F3F4F6` (Cinza claro) |
 | Texto principal | `#1F2937` (Cinza grafite) |
-| Fonte | Inter / Poppins / Roboto |
- 
-### Status dos Agendamentos
-- 🔵 **Agendado** — `#2563EB`
-- 🟢 **Confirmado** — `#10B981`
-- 🟡 **Pendente** — `#F59E0B`
-- 🔴 **Cancelado** — `#EF4444`
-- ⚫ **Concluído** — `#6B7280`
-- ⬜ **Bloqueado** — `#9CA3AF`
+| Tipografia | Inter / Poppins / Roboto |
+
+### Cores por status
+
+| Status | Cor |
+|---|---|
+| 🔵 Agendado | `#2563EB` |
+| 🟢 Confirmado | `#10B981` |
+| 🟡 Pendente | `#F59E0B` |
+| 🔴 Cancelado | `#EF4444` |
+| ⚫ Concluído | `#6B7280` |
+| ⬜ Bloqueado | `#9CA3AF` |
+
 ---
- 
-## Equipe
- 
-| Integrante | Responsabilidade |
-|------------|-----------------|
-| [Membro 1] | GitHub · README · Docs técnicas · Manual do usuário · Roteiro de pitch |
-| [Membro 2] | Script final do banco (dump SQL) |
-| [Membro 3] | Testes e integração final |
-| [Membro 4] | Frontend |
-| [Membro 5] | Backend |
- 
----
- 
+
 ## Licença
- 
+
 Projeto acadêmico desenvolvido para fins educacionais — SENAI CIMATEC, 2026.
- 
----
- 
-## Repositório
-[github.com/sucelsoav2/Sistema-Web-de-Agendamento-e-Gestao](https://github.com/sucelsoav2/Sistema-Web-de-Agendamento-e-Gestao)
