@@ -102,10 +102,20 @@ body.dark-mode .card,
 body.dark-mode .content-box,
 body.dark-mode .calendar-card,
 body.dark-mode .settings-card,
+body.dark-mode .integration-banner,
 body.dark-mode .reminder-card,
 body.dark-mode .table-container {
     background: #111827;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .integration-banner {
+    border-color: #1D4ED8;
+}
+
+body.dark-mode .integration-banner h3,
+body.dark-mode .integration-banner p {
+    color: #E2E8F0;
 }
 
 body.dark-mode .user-info {
@@ -337,6 +347,43 @@ body.dark-mode .user-info {
 
 .content-box.highlight {
     border: 1px solid #E5E7EB;
+}
+
+.integration-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 24px;
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+}
+
+.integration-banner h3 {
+    margin: 4px 0 6px;
+    color: #1E40AF;
+}
+
+.integration-banner p {
+    margin: 0;
+    color: #475569;
+}
+
+.integration-kicker {
+    color: #2563EB;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.integration-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .section-grid,
@@ -788,6 +835,21 @@ tbody tr:hover {
 }
 
 @media (max-width: 900px) {
+    .integration-banner,
+    .integration-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .integration-actions {
+        justify-content: stretch;
+    }
+
+    .integration-actions .primary,
+    .integration-actions .secondary {
+        width: 100%;
+    }
+
     .dashboard-container {
         flex-direction: column;
     }
