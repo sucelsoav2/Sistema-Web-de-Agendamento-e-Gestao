@@ -28,6 +28,12 @@ const calcularIdade = (dataNascimento) => {
 };
 
 const getAppUrl = () => (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+const getLoginRedirectUrl = () => `${getAppUrl()}/src/pages/login.html`;
+
+const emailFoiConfirmado = (authUser) => Boolean(
+  authUser?.email_confirmed_at
+  || authUser?.confirmed_at
+);
 
 const criarSupabaseComSessao = async (accessToken, refreshToken) => {
   const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -81,7 +87,7 @@ class AuthController {
         email,
         password: senha,
         options: {
-          emailRedirectTo: `${getAppUrl()}/src/pages/login.html`
+          emailRedirectTo: getLoginRedirectUrl()
         }
       });
 
@@ -152,7 +158,7 @@ class AuthController {
         return res.status(401).json({ sucesso: false, mensagem: 'Usuário ou senha inválidos' });
       }
 
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password: senha
       });
@@ -180,6 +186,21 @@ class AuthController {
           sucesso: false,
           codigo: 'CONTA_NAO_AUTENTICADA_SUPABASE',
           mensagem: 'Esta conta ainda não foi autenticada pelo Supabase. Confirme o email enviado no cadastro antes de fazer login.'
+        });
+      }
+
+      if (!emailFoiConfirmado(authData?.user)) {
+        console.warn("LOGIN BLOQUEADO: email não confirmado no Supabase Auth:", {
+          email,
+          userId: authData?.user?.id
+        });
+
+        await supabase.auth.signOut().catch(() => null);
+
+        return res.status(403).json({
+          sucesso: false,
+          codigo: 'EMAIL_NAO_CONFIRMADO',
+          mensagem: 'Confirme seu email pelo link enviado antes de fazer login. Se não recebeu, solicite um novo link de confirmação.'
         });
       }
 
@@ -222,7 +243,10 @@ class AuthController {
 
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email
+        email,
+        options: {
+          emailRedirectTo: getLoginRedirectUrl()
+        }
       });
 
       if (error) {
