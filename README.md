@@ -59,7 +59,7 @@ O sistema centraliza informações de agendamentos, reduz erros operacionais, me
 
 ---
 
-## Estrutura Real do Projeto
+## Estrutura do Projeto
 
 ```
 Sistema-Web-de-Agendamento-e-Gestao/
@@ -80,6 +80,11 @@ Sistema-Web-de-Agendamento-e-Gestao/
 │       └── app.js            # Configuração do servidor Express
 │
 ├── frontend/                 # Interface do usuário (HTML, CSS, JS)
+│   └── src/
+│       ├── middlewares/      # Proteção de rotas no lado do cliente
+│       ├── pages/            # Componentes principais que representam cada tela da aplicação
+│       ├── services/         # Chamadas de API
+│       ├── styles/           # Arquivos de estilização global
 │
 ├── .env.example              # Modelo das variáveis de ambiente
 ├── .gitignore
@@ -109,7 +114,7 @@ As rotas seguem o padrão definido no `app.js` e são roteadas pela Vercel via `
 | `/usuarios` | `usuariosRoutes.js` | Gerenciamento de usuários |
 | `/google-calendar` | `googleCalendarRoutes.js` | Integração e callback OAuth com Google Calendar |
 
-### Exemplos de endpoints
+### Endpoints da API
 
 **Autenticação**
 | Método | Rota | Descrição |
@@ -141,6 +146,19 @@ As rotas seguem o padrão definido no `app.js` e são roteadas pela Vercel via `
 | GET | `/google-calendar/auth` | Inicia o fluxo OAuth com o Google |
 | GET | `/google-calendar/callback` | Callback após autorização do Google |
 | POST | `/google-calendar/sync` | Sincroniza agendamentos com o Google Calendar |
+
+### Clientes
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/api/clientes` | Listar clientes |
+| POST | `/api/clientes` | Cadastrar cliente |
+| PUT | `/api/clientes/:id` | Atualizar cliente |
+ 
+### Lembretes
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/api/lembretes/enviar` | Disparar lembrete manual |
+| GET | `/api/lembretes/configuracoes` | Obter configurações de lembrete |
 
 ---
 
