@@ -310,8 +310,7 @@ EMAIL_FROM
 
 | Status | Cor |
 |---|---|
-| 🔵 Agendado | `#2563EB` |
-| 🟢 Confirmado | `#10B981` |
+| 🟢 Agendado | `#10B981` |
 | 🟡 Pendente | `#F59E0B` |
 | 🔴 Cancelado | `#EF4444` |
 | ⚫ Concluído | `#6B7280` |
