@@ -79,7 +79,10 @@ class AuthController {
 
       const { error: authError } = await supabase.auth.signUp({
         email,
-        password: senha
+        password: senha,
+        options: {
+          emailRedirectTo: `${getAppUrl()}/src/pages/login.html`
+        }
       });
 
       if (authError) {
