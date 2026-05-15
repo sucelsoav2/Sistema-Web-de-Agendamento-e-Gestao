@@ -2,6 +2,7 @@ const supabase = require('../config/database');
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { sendEmail } = require('../services/emailService');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -44,6 +45,79 @@ const emailFoiConfirmado = (authUser) => Boolean(
   authUser?.email_confirmed_at
   || authUser?.confirmed_at
 );
+
+const criarSupabaseAdmin = () => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
+
+const montarEmailConfirmacao = ({ nome, actionLink }) => {
+  const primeiroNome = String(nome || '').trim().split(/\s+/)[0] || 'Olá';
+
+  return {
+    subject: 'Confirme seu cadastro no AgendaFlow',
+    text: `${primeiroNome}, confirme seu cadastro no AgendaFlow acessando este link: ${actionLink}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
+        <h2>Confirme seu cadastro no AgendaFlow</h2>
+        <p>${primeiroNome}, clique no botão abaixo para confirmar seu email e liberar seu acesso.</p>
+        <p>
+          <a href="${actionLink}" style="display: inline-block; padding: 12px 18px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px;">
+            Confirmar meu email
+          </a>
+        </p>
+        <p>Se o botão não funcionar, copie e cole este link no navegador:</p>
+        <p><a href="${actionLink}">${actionLink}</a></p>
+      </div>
+    `
+  };
+};
+
+const gerarLinkConfirmacaoComAdmin = async ({ email, senha, nome, emailRedirectTo }) => {
+  const supabaseAdmin = criarSupabaseAdmin();
+  if (!supabaseAdmin) return null;
+
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'signup',
+    email,
+    password: senha,
+    options: {
+      redirectTo: emailRedirectTo,
+      data: { nome }
+    }
+  });
+
+  if (error) throw error;
+
+  const actionLink = data?.properties?.action_link;
+  if (!actionLink) {
+    throw new Error('O Supabase não retornou o link de confirmação.');
+  }
+
+  return { supabaseAdmin, authUser: data.user, actionLink };
+};
+
+const enviarConfirmacaoPorEmailProprio = async ({ email, nome, actionLink }) => {
+  const emailContent = montarEmailConfirmacao({ nome, actionLink });
+  const emailResult = await sendEmail({
+    to: email,
+    subject: emailContent.subject,
+    text: emailContent.text,
+    html: emailContent.html
+  });
+
+  if (!emailResult.sent) {
+    throw new Error(`SMTP do backend não enviou o email: ${emailResult.reason || 'motivo desconhecido'}`);
+  }
+
+  return emailResult;
+};
 
 const criarSupabaseComSessao = async (accessToken, refreshToken) => {
   const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -93,25 +167,102 @@ class AuthController {
       console.log("--- TENTATIVA DE CADASTRO ---");
       console.log("Campos recebidos:", { nome, email, telefone, data_nascimento, foto_tamanho: foto_perfil ? foto_perfil.length : 0 });
 
-      const { error: authError } = await supabase.auth.signUp({
-        email,
-        password: senha,
-        options: {
-          emailRedirectTo: getLoginRedirectUrl(req)
-        }
+      const emailRedirectTo = getLoginRedirectUrl(req);
+      let authUserCriado = null;
+      let supabaseAdminDoCadastro = null;
+      let emailConfirmacaoEnviadoPorBackend = false;
+
+      const adminLink = await gerarLinkConfirmacaoComAdmin({ email, senha, nome, emailRedirectTo }).catch(async (adminError) => {
+        console.error("ERRO AO GERAR/ENVIAR CONFIRMAÇÃO COM SUPABASE ADMIN:", {
+          message: adminError.message,
+          status: adminError.status,
+          code: adminError.code,
+          name: adminError.name,
+          emailRedirectTo
+        });
+
+        return { adminError };
       });
 
-      if (authError) {
-        console.error("ERRO SUPABASE AUTH NO REGISTRO:", authError);
-        const authMessage = String(authError.message || '');
-        if (/rate limit/i.test(authMessage)) {
-          return res.status(429).json({
+      if (adminLink?.adminError) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: adminLink.adminError.message || "Não foi possível gerar o link de confirmação pelo Supabase.",
+          detalhe: {
+            origem: 'supabase_admin_generate_link',
+            status: adminLink.adminError.status,
+            code: adminLink.adminError.code,
+            name: adminLink.adminError.name,
+            emailRedirectTo
+          }
+        });
+      }
+
+      if (adminLink) {
+        supabaseAdminDoCadastro = adminLink.supabaseAdmin;
+        authUserCriado = adminLink.authUser;
+
+        try {
+          await enviarConfirmacaoPorEmailProprio({ email, nome, actionLink: adminLink.actionLink });
+          emailConfirmacaoEnviadoPorBackend = true;
+        } catch (emailError) {
+          if (authUserCriado?.id && supabaseAdminDoCadastro) {
+            await supabaseAdminDoCadastro.auth.admin.deleteUser(authUserCriado.id).catch(() => null);
+          }
+
+          console.error("ERRO AO ENVIAR CONFIRMAÇÃO PELO SMTP DO BACKEND:", {
+            message: emailError.message,
+            emailRedirectTo
+          });
+
+          return res.status(400).json({
             sucesso: false,
-            codigo: 'EMAIL_RATE_LIMIT',
-            mensagem: "O Supabase bloqueou temporariamente o envio de emails de confirmação por excesso de tentativas. Aguarde alguns minutos antes de criar outra conta ou ajuste o SMTP/rate limit no Supabase."
+            mensagem: emailError.message || "Não foi possível enviar o email de confirmação.",
+            detalhe: {
+              origem: 'backend_smtp_confirmation',
+              emailRedirectTo
+            }
           });
         }
-        return res.status(400).json({ sucesso: false, mensagem: authError.message || "Email inválido no autenticador do Supabase" });
+      } else {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password: senha,
+          options: {
+            emailRedirectTo
+          }
+        });
+
+        if (authError) {
+          console.error("ERRO SUPABASE AUTH NO REGISTRO:", {
+            message: authError.message,
+            status: authError.status,
+            code: authError.code,
+            name: authError.name,
+            emailRedirectTo
+          });
+          const authMessage = String(authError.message || '');
+          if (/rate limit/i.test(authMessage)) {
+            return res.status(429).json({
+              sucesso: false,
+              codigo: 'EMAIL_RATE_LIMIT',
+              mensagem: "O Supabase bloqueou temporariamente o envio de emails de confirmação por excesso de tentativas. Aguarde alguns minutos antes de criar outra conta ou ajuste o SMTP/rate limit no Supabase."
+            });
+          }
+          return res.status(400).json({
+            sucesso: false,
+            mensagem: authError.message || "Email inválido no autenticador do Supabase",
+            detalhe: {
+              origem: 'supabase_auth_signup',
+              status: authError.status,
+              code: authError.code,
+              name: authError.name,
+              emailRedirectTo
+            }
+          });
+        }
+
+        authUserCriado = authData?.user;
       }
 
       const senhaHash = await bcrypt.hash(senha, 10);
@@ -128,6 +279,9 @@ class AuthController {
 
       if (error) {
         console.error("ERRO SUPABASE NO REGISTRO:", error);
+        if (authUserCriado?.id && supabaseAdminDoCadastro) {
+          await supabaseAdminDoCadastro.auth.admin.deleteUser(authUserCriado.id).catch(() => null);
+        }
         if (error.code === '23505') return res.status(409).json({ sucesso: false, mensagem: "Email já cadastrado" });
         throw error;
       }
@@ -135,7 +289,9 @@ class AuthController {
       console.log("USUÁRIO CADASTRADO COM SUCESSO!");
       return res.status(201).json({
         sucesso: true,
-        mensagem: "Usuário registrado com sucesso. Confirme seu email antes de fazer login.",
+        mensagem: emailConfirmacaoEnviadoPorBackend
+          ? "Usuário registrado com sucesso. Enviamos o email de confirmação."
+          : "Usuário registrado com sucesso. Confirme seu email antes de fazer login.",
         usuario: { id: data.id, nome, email, role_id: data.role_id },
       });
     } catch (erro) {

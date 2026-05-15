@@ -43,7 +43,12 @@ const authService = {
         });
 
         const data = await response.json();
-        if (!response.ok || !data.sucesso) throw new Error(data.mensagem || 'Erro ao registrar.');
+        if (!response.ok || !data.sucesso) {
+            const error = new Error(data.mensagem || 'Erro ao registrar.');
+            error.codigo = data.codigo;
+            error.detalhe = data.detalhe;
+            throw error;
+        }
 
         return data;
     },

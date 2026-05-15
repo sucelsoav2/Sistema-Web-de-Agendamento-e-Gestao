@@ -165,7 +165,12 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.disabled = false;
       btn.textContent = "Criar conta";
       
-      console.error("Erro no cadastro:", error);
+      console.error("Erro no cadastro:", {
+        message: error.message,
+        codigo: error.codigo,
+        detalhe: error.detalhe,
+        error
+      });
       alert("Erro ao cadastrar: " + error.message);
     }
   });

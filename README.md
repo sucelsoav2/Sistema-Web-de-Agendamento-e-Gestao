@@ -161,6 +161,7 @@ Variáveis que precisam ser cadastradas em **Vercel > Project Settings > Environ
 ```env
 SUPABASE_URL=
 SUPABASE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
 APP_URL=https://seu-projeto.vercel.app
 GOOGLE_CLIENT_ID=
